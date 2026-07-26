@@ -46,3 +46,4 @@
 - [桌面交接约定](BRIDGE_CONTRACT.md)
 - [产品路线图](ROADMAP.md)
 - [Codex 插件说明](CODEX_PLUGIN.md)
+- [v0.5.1 完成度审计](V0.5.1_COMPLETION_AUDIT.md)

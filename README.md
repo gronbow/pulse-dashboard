@@ -92,6 +92,7 @@ npm run dist:win
 这是一项跑步数据项目的首个桌面测试版尝试。当前优先级仍是稳定真实的“Codex + COROS MCP → Pulse 桌面看板”闭环，而不是单独开发一个数据监测 App。完全无任务痕迹的后台 MCP 查询尚不属于 Codex 当前可验证的能力边界。
 
 路线图见 [docs/ROADMAP.md](docs/ROADMAP.md)。
+发布前逐项验收与已知限制见 [v0.5.1 完成度审计](docs/V0.5.1_COMPLETION_AUDIT.md)。
 
 ## License
 
