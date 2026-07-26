@@ -12,6 +12,8 @@
 
 当前完整 `npm audit` 会报告 electron-builder 构建工具链中的 `brace-expansion` 高危拒绝服务公告；这些包只存在于 `devDependencies`，不会进入 `app.asar`，而生产依赖审计为 0。不要使用会把 electron-builder 强制降级的 `npm audit fix --force`；应等待上游兼容更新后再复核。
 
+当前 Windows 实测空闲 CPU 约为 0%，但 Electron 四进程总工作集约为 386 MB，高于原始 150 MB 目标。测试版发布说明必须披露该差距，不能宣称已达到轻量内存指标。
+
 ## 数据与隐私门
 
 - [ ] `npm run audit:public` 通过。
