@@ -243,6 +243,12 @@ function smokeScreenshotPath() {
   return argument ? path.resolve(argument.slice(prefix.length)) : '';
 }
 
+function smokeScrollSelector() {
+  if (app.isPackaged) return '';
+  const selector = String(process.env.PULSE_SMOKE_SCROLL_SELECTOR || '').trim();
+  return selector.length <= 80 && /^[#.][A-Za-z0-9_-]+$/.test(selector) ? selector : '';
+}
+
 async function captureSmokeScreenshot(outputPath) {
   const smokeConfig = await mainWindow.webContents.executeJavaScript(
     'window.pulseDesktop.getConfig()',
@@ -261,6 +267,26 @@ async function captureSmokeScreenshot(outputPath) {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   if (!ready) throw new Error('dashboard did not finish rendering within 3 seconds');
+  const selector = smokeScrollSelector();
+  if (selector) {
+    const found = await mainWindow.webContents.executeJavaScript(
+      `Boolean(document.querySelector(${JSON.stringify(selector)}))`,
+      true
+    );
+    if (!found) throw new Error(`smoke scroll target was not found: ${selector}`);
+    await mainWindow.webContents.executeJavaScript(
+      `document.querySelector(${JSON.stringify(selector)}).scrollIntoView({ block: 'center' })`,
+      true
+    );
+    const visible = await mainWindow.webContents.executeJavaScript(
+      `(() => {
+        const rect = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();
+        return rect.bottom > 0 && rect.top < window.innerHeight;
+      })()`,
+      true
+    );
+    if (!visible) throw new Error(`smoke scroll target did not enter the viewport: ${selector}`);
+  }
   await mainWindow.webContents.executeJavaScript(
     'new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))',
     true
@@ -281,7 +307,7 @@ async function captureSmokeScreenshot(outputPath) {
       if (red > 140 && green > 180 && blue < 150) brandPixels += 1;
     }
   }
-  if (brandPixels < width * height * 0.001) {
+  if (!selector && brandPixels < width * height * 0.001) {
     throw new Error('dashboard brand area was not painted in the captured frame');
   }
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });

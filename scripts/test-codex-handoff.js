@@ -14,8 +14,17 @@ server.listen(0, '127.0.0.1', async () => {
   const base = `http://127.0.0.1:${port}`;
   const payload = {
     meta: { asOf: '2026-07-24T08:00:00+08:00', lastUpdated: '2026-07-24T08:00:00+08:00' },
-    health: { sleep: { durationMinutes: 390, score: 92 }, restingHeartRate: { value: 50 } },
+    health: {
+      sleep: { durationMinutes: 390, score: 92, date: '2026-07-24' },
+      restingHeartRate: { value: 50, date: '2026-07-24' }
+    },
     todayActivities: [{ sport: '跑步', distanceKm: 6, durationSeconds: 1800 }],
+    trends: {
+      trainingLoad: [
+        { date: '2026-07-23', shortTerm: 61, longTerm: 64, ratio: 0.95 },
+        { date: '2026-07-24', shortTerm: 66, longTerm: 65, ratio: 1.01 }
+      ]
+    },
     insight: { text: 'Codex 已生成测试洞察。', tags: ['测试'] }
   };
   try {
@@ -36,6 +45,8 @@ server.listen(0, '127.0.0.1', async () => {
     const snapshot = await (await fetch(`${base}/api/snapshot`)).json();
     assert.equal(snapshot.meta.provider, 'codex-coros-mcp');
     assert.equal(snapshot.health.sleep.score, 92);
+    assert.equal(snapshot.health.sleep.date, '2026-07-24');
+    assert.equal(snapshot.trends.trainingLoad.length, 2);
     assert.equal(snapshot.todayActivities[0].distanceKm, 6);
     assert.equal(snapshot.todayActivities[0].sport, '跑步');
     assert.equal(snapshot.insight.text, payload.insight.text);

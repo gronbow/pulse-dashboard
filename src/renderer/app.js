@@ -65,6 +65,16 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
 }
 
+function shortDateLabel(value) {
+  const match = String(value || '').match(/^\d{4}-(\d{2})-(\d{2})$/);
+  return match ? `${Number(match[1])}月${Number(match[2])}日` : '';
+}
+
+function datedNote(label, metricDate, currentDateKey) {
+  const dateLabel = metricDate && metricDate !== currentDateKey ? shortDateLabel(metricDate) : '';
+  return dateLabel ? `${label} · ${dateLabel}` : label;
+}
+
 function applyTheme() {
   const isLight = config.theme === 'light' || (config.theme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches);
   document.body.classList.toggle('light', isLight);
@@ -72,12 +82,39 @@ function applyTheme() {
 
 function renderBars(selector, values, invert = false) {
   const el = $(selector);
+  if (!Array.isArray(values) || !values.length) {
+    el.innerHTML = '<span class="trend-empty">暂无七日数据</span>';
+    return;
+  }
   const min = Math.min(...values);
   const max = Math.max(...values);
   el.innerHTML = values.map((value) => {
     const height = max === min ? 55 : 26 + ((value - min) / (max - min)) * 64;
     const normalized = invert ? 100 - height : height;
     return `<span class="bar" style="height:${Math.max(20, normalized)}%" title="${value}"></span>`;
+  }).join('');
+}
+
+function renderLoadBars(entries) {
+  const el = $('#load-bars');
+  const points = Array.isArray(entries)
+    ? entries.filter((entry) => Number.isFinite(Number(entry?.shortTerm))).slice(-7)
+    : [];
+  if (!points.length) {
+    el.innerHTML = '<span class="trend-empty">暂无七日负荷</span>';
+    return;
+  }
+  const max = Math.max(...points.map((entry) => Number(entry.shortTerm)), 1);
+  el.innerHTML = points.map((entry) => {
+    const height = 8 + (Number(entry.shortTerm) / max) * 24;
+    const dateLabel = String(entry.date || '').slice(-2).replace(/^0/, '') || '—';
+    const detail = [
+      shortDateLabel(entry.date),
+      `短期 ${entry.shortTerm}`,
+      entry.longTerm == null ? '' : `长期 ${entry.longTerm}`,
+      entry.ratio == null ? '' : `比值 ${entry.ratio}`
+    ].filter(Boolean).join(' · ');
+    return `<span class="load-day" title="${escapeHtml(detail)}"><span class="bar" style="height:${height}px"></span><span class="load-day-label">${escapeHtml(dateLabel)}</span></span>`;
   }).join('');
 }
 
@@ -123,7 +160,10 @@ function render(snapshotData) {
   const totalSeconds = todayActivities.reduce((sum, activity) => sum + (activity.durationSeconds || 0), 0);
   const totalDistance = todayActivities.reduce((sum, activity) => sum + (activity.distanceKm || 0), 0);
   const heartRates = todayActivities.map((activity) => activity.heartRate).filter(Boolean);
-  setText('#training-status', todayActivities.length ? (todayActivities.some((a) => a.status === 'completed') ? '已完成' : '有安排') : '休息日');
+  const isPlannedRestDay = ['rest', 'rest_day'].includes(plan.status) && (!plan.date || plan.date === asOfKey);
+  setText('#training-status', todayActivities.length
+    ? (todayActivities.some((a) => a.status === 'completed') ? '已完成' : '有安排')
+    : isPlannedRestDay ? '休息日' : '暂无记录');
   $('#training-empty').hidden = Boolean(todayActivities.length);
   $('#activity-list').innerHTML = todayActivities.map((activity) => `<div class="activity-row">
     <div class="activity-icon">↗</div><div class="activity-main"><div class="activity-name">${escapeHtml(activity.sport || '运动')}</div><div class="activity-sub">${formatDuration(activity.durationSeconds)}${activity.paceSecondsPerKm ? ` · ${formatPace(activity.paceSecondsPerKm)}` : ''} · ${escapeHtml(activity.heartRate ?? '—')} bpm · ${escapeHtml(activity.calories ?? '—')} kcal</div></div><div class="activity-distance">${Number(activity.distanceKm) > 0 ? `${Number(activity.distanceKm).toFixed(2)}<span class="muted tiny"> km</span>` : '—'}</div>
@@ -133,12 +173,20 @@ function render(snapshotData) {
   setText('#total-heart-rate', heartRates.length ? `${Math.round(heartRates.reduce((a, b) => a + b, 0) / heartRates.length)} bpm` : '—');
 
   setText('#sleep-value', formatMinutes(health.sleep?.durationMinutes || 0));
-  setText('#sleep-score', `评分 ${health.sleep?.score ?? '—'}`);
+  setText('#sleep-score', datedNote(`评分 ${health.sleep?.score ?? '—'}`, health.sleep?.date, asOfKey));
   setText('#rhr-value', health.restingHeartRate?.value == null ? '—' : `${health.restingHeartRate.value} bpm`);
   const trend = health.restingHeartRate?.trend;
-  setText('#rhr-trend', trend == null ? '无对比' : `${trend > 0 ? '↑' : trend < 0 ? '↓' : '→'} ${Math.abs(trend)} bpm vs 昨日`);
+  setText('#rhr-trend', datedNote(
+    trend == null ? '无对比' : `${trend > 0 ? '↑' : trend < 0 ? '↓' : '→'} ${Math.abs(trend)} bpm vs 前日`,
+    health.restingHeartRate?.date,
+    asOfKey
+  ));
   setText('#hrv-value', health.hrv?.value == null ? '—' : `${health.hrv.value} ms`);
-  setText('#hrv-status', health.hrv?.status === 'above_normal' ? '高于个人正常范围' : health.hrv?.status === 'normal' ? '个人正常范围' : '暂无数据');
+  setText('#hrv-status', datedNote(
+    health.hrv?.status === 'above_normal' ? '高于个人正常范围' : health.hrv?.status === 'normal' ? '个人正常范围' : '暂无数据',
+    health.hrv?.date,
+    asOfKey
+  ));
   setText('#recovery-value', health.recovery?.value == null ? '—' : `${health.recovery.value}%`);
   const recoveryLabels = {
     heavy_training_allowed: '可进行较高负荷',
@@ -147,19 +195,34 @@ function render(snapshotData) {
     rest_recommended: '建议恢复或休息',
     unknown: '暂无判断'
   };
-  setText('#recovery-level', recoveryLabels[health.recovery?.level] || '按状态调整');
+  setText('#recovery-level', datedNote(
+    recoveryLabels[health.recovery?.level] || '按状态调整',
+    health.recovery?.date,
+    asOfKey
+  ));
   setText('#steps-value', health.steps?.value == null ? '—' : Number(health.steps.value).toLocaleString('en-US'));
+  setText('#steps-note', datedNote('今日累计', health.steps?.date, asOfKey));
   setText('#spo2-value', health.spo2?.value == null ? '—' : `${health.spo2.value}%`);
-  setText('#spo2-status', health.spo2?.value == null ? '设备未提供' : '今日最新值');
+  setText('#spo2-status', datedNote(
+    health.spo2?.value == null ? '设备未提供' : '最近有效值',
+    health.spo2?.date,
+    asOfKey
+  ));
 
-  setText('#plan-title', plan.title || '未设置训练计划');
+  const planDateLabel = plan.date && plan.date !== asOfKey ? shortDateLabel(plan.date) : '';
+  const planTitle = plan.title || '未设置训练计划';
+  setText('#plan-title', planDateLabel ? `${planDateLabel} · ${planTitle}` : planTitle);
   setText('#plan-description', plan.description || plan.name || '今天没有计划安排');
   setText('#plan-load', plan.load == null ? '—' : `训练负荷 ${plan.load}`);
-  setText('#load-summary', load.ratio == null ? '负荷 —' : `负荷比 ${load.ratio}`);
-  $('#rhr-bars').innerHTML = '';
-  $('#sleep-bars').innerHTML = '';
-  if (trends.restingHeartRate?.length) renderBars('#rhr-bars', trends.restingHeartRate);
-  if (trends.sleepScore?.length) renderBars('#sleep-bars', trends.sleepScore);
+  const loadSummary = [
+    load.shortTerm == null ? '' : `短 ${load.shortTerm}`,
+    load.longTerm == null ? '' : `长 ${load.longTerm}`,
+    load.ratio == null ? '' : `比 ${load.ratio}`
+  ].filter(Boolean).join(' · ');
+  setText('#load-summary', loadSummary || '负荷 —');
+  renderLoadBars(trends.trainingLoad);
+  renderBars('#rhr-bars', trends.restingHeartRate);
+  renderBars('#sleep-bars', trends.sleepScore);
 
   let statusMessage = '';
   if (meta.error) {

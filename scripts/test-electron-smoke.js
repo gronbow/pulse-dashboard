@@ -8,9 +8,12 @@ const root = path.join(__dirname, '..');
 const electronPath = require('electron');
 const outputDirectory = path.join(root, '.runtime-check-v8');
 const liveSnapshotSource = process.env.PULSE_SMOKE_SNAPSHOT_PATH || '';
+const scrollSelector = process.env.PULSE_SMOKE_SCROLL_SELECTOR || '';
 const screenshotPath = path.join(
   outputDirectory,
-  liveSnapshotSource ? 'pulse-dashboard-live.png' : 'pulse-dashboard-smoke.png'
+  liveSnapshotSource
+    ? scrollSelector ? 'pulse-dashboard-live-trends.png' : 'pulse-dashboard-live.png'
+    : scrollSelector ? 'pulse-dashboard-trends.png' : 'pulse-dashboard-smoke.png'
 );
 const userDataPath = fs.mkdtempSync(path.join(os.tmpdir(), 'pulse-electron-smoke-'));
 const handoffPath = path.join(userDataPath, 'handoff.json');

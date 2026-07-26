@@ -27,6 +27,35 @@ Handoff 默认监听 `http://127.0.0.1:19091`，快照仅落在当前 Windows �
 
 快照必须至少含有 `health` 或 `todayActivities`；字段缺失会按现有快照归一化规则显示为空值，不应伪造成 `0`。
 
+为避免凌晨或设备尚未归档时把“最近有效值”误写成“今日值”，健康指标可以携带独立日期：
+
+```json
+{
+  "health": {
+    "sleep": { "durationMinutes": 357, "score": 83, "date": "2026-07-26" },
+    "restingHeartRate": { "value": 51, "trend": -1, "date": "2026-07-26" },
+    "hrv": { "value": 94, "status": "above_normal", "date": "2026-07-26" },
+    "steps": { "value": 40, "date": "2026-07-27" },
+    "recovery": { "value": 99, "level": "heavy_training_allowed", "date": "2026-07-27" }
+  }
+}
+```
+
+看板会对早于快照日期的指标显示其日期，不把旧值冒充成当天新值。训练计划同样可用 `plan.date` 标记课表所属日期。
+
+最近七日负荷使用按日期升序排列的 `trends.trainingLoad`：
+
+```json
+{
+  "trends": {
+    "trainingLoad": [
+      { "date": "2026-07-21", "shortTerm": 61, "longTerm": 64, "ratio": 0.95, "comment": "Maintaining" },
+      { "date": "2026-07-27", "shortTerm": 71, "longTerm": 66, "ratio": 1.07, "comment": "Optimized" }
+    ]
+  }
+}
+```
+
 对于 Codex 自动同步，发布前还必须满足：至少两项有效健康指标、非空且基于数据的训练洞察；若活动有距离，则必须包含正的时长。任一条件不满足时，Handoff 会拒绝该快照并保留上一次有效数据。
 
 ## 责任边界

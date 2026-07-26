@@ -16,7 +16,54 @@ function listOfNumbers(value, limit = 30) {
   return value.map((item) => finiteNumber(item)).filter((item) => item !== null).slice(-limit);
 }
 
+function normalizeDateKey(value) {
+  if (value == null || value === '') return null;
+  const raw = String(value).trim();
+  const compactMatch = raw.match(/^(\d{4})(\d{2})(\d{2})$/);
+  const dashedMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const match = compactMatch || dashedMatch;
+  if (match) {
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const candidate = new Date(Date.UTC(year, month - 1, day));
+    if (
+      candidate.getUTCFullYear() === year
+      && candidate.getUTCMonth() === month - 1
+      && candidate.getUTCDate() === day
+    ) {
+      return `${match[1]}-${match[2]}-${match[3]}`;
+    }
+    return null;
+  }
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
+}
+
+function listOfTrainingLoad(value, limit = 7) {
+  if (!Array.isArray(value)) return [];
+  const byDate = new Map();
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue;
+    const date = normalizeDateKey(item.date ?? item.day ?? item.asOf);
+    if (!date) continue;
+    const point = {
+      date,
+      shortTerm: finiteNumber(item.shortTerm, null, 0, 10_000),
+      longTerm: finiteNumber(item.longTerm, null, 0, 10_000),
+      ratio: finiteNumber(item.ratio, null, 0, 10),
+      comment: text(item.comment, '')
+    };
+    if (point.shortTerm === null && point.longTerm === null && point.ratio === null) continue;
+    byDate.set(date, point);
+  }
+  return [...byDate.values()]
+    .sort((left, right) => left.date.localeCompare(right.date))
+    .slice(-limit);
+}
+
 function validDate(value, fallback) {
+  if (value == null || value === '') return fallback;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? fallback : date.toISOString();
 }
@@ -70,30 +117,36 @@ function normalizeSnapshot(input, metaOverrides = {}) {
       restingHeartRate: {
         value: finiteNumber(rawRhr.value, null, 20, 240),
         unit: 'bpm',
-        trend: finiteNumber(rawRhr.trend, null, -100, 100)
+        trend: finiteNumber(rawRhr.trend, null, -100, 100),
+        date: normalizeDateKey(rawRhr.date ?? rawRhr.asOf)
       },
       hrv: {
         value: finiteNumber(rawHrv.value, null, 1, 500),
         unit: 'ms',
-        status: text(rawHrv.status, 'unavailable')
+        status: text(rawHrv.status, 'unavailable'),
+        date: normalizeDateKey(rawHrv.date ?? rawHrv.asOf)
       },
       sleep: {
         durationMinutes: finiteNumber(rawSleep.durationMinutes, null, 1, 1_440),
-        score: finiteNumber(rawSleep.score, null, 1, 100)
+        score: finiteNumber(rawSleep.score, null, 1, 100),
+        date: normalizeDateKey(rawSleep.date ?? rawSleep.asOf)
       },
       spo2: {
         value: finiteNumber(rawSpo2.value, null, 1, 100),
         unit: '%',
-        status: text(rawSpo2.status, 'unavailable')
+        status: text(rawSpo2.status, 'unavailable'),
+        date: normalizeDateKey(rawSpo2.date ?? rawSpo2.asOf)
       },
       steps: {
         value: finiteNumber(rawSteps.value, null, 0, 200_000),
-        unit: 'steps'
+        unit: 'steps',
+        date: normalizeDateKey(rawSteps.date ?? rawSteps.asOf)
       },
       recovery: {
         value: finiteNumber(rawRecovery.value, null, 1, 100),
         unit: '%',
-        level: text(rawRecovery.level, 'unknown')
+        level: text(rawRecovery.level, 'unknown'),
+        date: normalizeDateKey(rawRecovery.date ?? rawRecovery.asOf)
       }
     },
     todayActivities: Array.isArray(raw.todayActivities) ? raw.todayActivities.map(normalizeActivity).filter(Boolean) : [],
@@ -102,7 +155,8 @@ function normalizeSnapshot(input, metaOverrides = {}) {
       status: text(rawPlan.status, 'unknown'),
       title: text(rawPlan.title, ''),
       description: text(rawPlan.description, ''),
-      load: finiteNumber(rawPlan.load, null, 0, 10_000)
+      load: finiteNumber(rawPlan.load, null, 0, 10_000),
+      date: normalizeDateKey(rawPlan.date ?? rawPlan.scheduledDate)
     },
     load: {
       comment: text(rawLoad.comment, ''),
@@ -112,7 +166,8 @@ function normalizeSnapshot(input, metaOverrides = {}) {
     },
     trends: {
       restingHeartRate: listOfNumbers(rawTrends.restingHeartRate),
-      sleepScore: listOfNumbers(rawTrends.sleepScore)
+      sleepScore: listOfNumbers(rawTrends.sleepScore),
+      trainingLoad: listOfTrainingLoad(rawTrends.trainingLoad)
     },
     insight: {
       text: text(rawInsight.text, ''),
@@ -121,4 +176,4 @@ function normalizeSnapshot(input, metaOverrides = {}) {
   };
 }
 
-module.exports = { SNAPSHOT_VERSION, normalizeSnapshot };
+module.exports = { SNAPSHOT_VERSION, normalizeDateKey, normalizeSnapshot };

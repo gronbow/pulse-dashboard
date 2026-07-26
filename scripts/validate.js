@@ -25,6 +25,9 @@ if (fixture?.meta?.source !== 'demo') fail('mock snapshot must be marked as demo
 if (!Array.isArray(fixture?.todayActivities)) fail('todayActivities must be an array');
 if (!Array.isArray(fixture?.trends?.restingHeartRate)) fail('restingHeartRate trend must be an array');
 if (!Array.isArray(fixture?.trends?.sleepScore)) fail('sleepScore trend must be an array');
+if (!Array.isArray(fixture?.trends?.trainingLoad) || fixture.trends.trainingLoad.length !== 7) {
+  fail('trainingLoad trend must contain seven demo points');
+}
 
 try {
   const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'));

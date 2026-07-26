@@ -87,7 +87,7 @@
           <div class="metric-icon steps-icon">⌁</div>
           <div class="muted tiny">步数</div>
           <strong id="steps-value">—</strong>
-          <span class="metric-note">今日累计</span>
+          <span id="steps-note" class="metric-note">今日累计</span>
         </article>
         <article class="metric-card card spo2-card">
           <div class="metric-icon spo2-icon">O₂</div>
@@ -116,6 +116,7 @@
           <div class="section-label">近 7 日状态</div>
           <span id="load-summary" class="muted tiny">负荷 —</span>
         </div>
+        <div class="trend-block load-trend-block"><span class="muted tiny">训练负荷</span><div id="load-bars" class="load-bars"></div></div>
         <div class="trend-block"><span class="muted tiny">静息心率</span><div id="rhr-bars" class="bars"></div></div>
         <div class="trend-block"><span class="muted tiny">睡眠评分</span><div id="sleep-bars" class="bars warm"></div></div>
       </section>
