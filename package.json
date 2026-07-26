@@ -1,0 +1,70 @@
+{
+  "name": "pulse-dashboard",
+  "version": "0.5.0",
+  "productName": "Pulse Dashboard",
+  "description": "A privacy-first, multi-source health and training desktop dashboard.",
+  "author": "Qin Lipeng",
+  "main": "src/main.js",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "build": {
+    "appId": "app.pulse.dashboard",
+    "artifactName": "Pulse-Dashboard-Setup-${version}-${arch}.${ext}",
+    "asar": true,
+    "electronDist": "node_modules/electron/dist",
+    "directories": {
+      "buildResources": "build",
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "bridge/codex-handoff-server.js",
+      "package.json",
+      "LICENSE"
+    ],
+    "win": {
+      "icon": "build/icon.svg",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "scripts": {
+    "start": "electron .",
+    "check": "node scripts/validate.js",
+    "audit:public": "node scripts/audit-public-repo.js",
+    "audit:history": "node scripts/audit-git-history.js --ref HEAD",
+    "audit:history:all": "node scripts/audit-git-history.js --all",
+    "audit:production": "npm audit --omit=dev --audit-level=high",
+    "bridge:demo": "node bridge/mock-server.js",
+    "bridge:codex": "node bridge/codex-handoff-server.js",
+    "test": "npm run check && npm run audit:public && npm run test:history-audit-cli && npm run test:snapshot && npm run test:adapter && npm run test:bridge && npm run test:codex-handoff && npm run test:publisher",
+    "test:bridge": "node scripts/test-bridge.js",
+    "test:snapshot": "node scripts/test-snapshot.js",
+    "test:adapter": "node scripts/test-adapter.js",
+    "test:codex-handoff": "node scripts/test-codex-handoff.js",
+    "test:publisher": "node scripts/test-publish-snapshot.js",
+    "test:history-audit-cli": "node scripts/test-audit-git-history.js",
+    "test:desktop": "node scripts/test-electron-smoke.js",
+    "pack:win": "electron-builder --dir --win --x64",
+    "dist:win": "electron-builder --win nsis --x64"
+  },
+  "devDependencies": {
+    "electron": "^43.2.0",
+    "electron-builder": "^26.15.3"
+  }
+}

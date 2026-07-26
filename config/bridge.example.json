@@ -1,0 +1,11 @@
+{
+  "listenHost": "127.0.0.1",
+  "listenPort": 19090,
+  "timezone": "Asia/Shanghai",
+  "logHealthPayloads": false,
+  "dataSource": {
+    "adapter": "mcp-bridge",
+    "transport": "replace-with-your-mcp-transport",
+    "auth": "managed-outside-dashboard"
+  }
+}

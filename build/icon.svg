@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>Pulse Dashboard</title>
+  <rect x="48" y="48" width="928" height="928" rx="260" fill="#b7f34a"/>
+  <path
+    d="M248 790 302 234h238c165 0 264 82 250 224-13 139-126 221-291 221H390l-11 111H248Zm163-244h103c80 0 130-31 136-90 6-61-38-90-118-90H429l-18 180Z"
+    fill="#11170d"
+  />
+</svg>

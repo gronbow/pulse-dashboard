@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>Pulse Dashboard</title>
+  </head>
+  <body>
+    <main class="app-shell">
+      <div class="dashboard-scroll">
+      <header class="titlebar drag-region">
+        <div class="brand no-drag">
+          <span class="brand-mark">P</span>
+          <div>
+            <div class="eyebrow">PULSE DASHBOARD</div>
+            <h1>身体与训练</h1>
+          </div>
+        </div>
+        <div class="window-actions no-drag">
+          <button id="settings-button" class="icon-button" aria-label="设置">⚙</button>
+          <button id="hide-button" class="icon-button" aria-label="隐藏">—</button>
+        </div>
+      </header>
+
+      <section class="dayline">
+        <div>
+          <span id="today-label">今天，7月24日</span>
+          <span id="source-badge" class="source-badge">演示数据</span>
+        </div>
+        <button id="refresh-button" class="refresh-button" title="读取最近一次已同步的 Codex 快照">↻ <span id="refresh-label">读取同步</span></button>
+      </section>
+
+      <div id="error-banner" class="error-banner" hidden></div>
+
+      <section class="insight-card card">
+        <div class="card-heading">
+          <div class="section-label"><span class="pulse-dot"></span> AI 今日洞察</div>
+          <button id="insight-button" class="text-button">重新生成</button>
+        </div>
+        <p id="insight-text" class="insight-text">正在加载今日状态……</p>
+        <div id="insight-tags" class="tag-row"></div>
+        <p class="muted tiny">仅供训练参考，不构成医疗建议</p>
+      </section>
+
+      <section class="card training-card">
+        <div class="card-heading">
+          <div class="section-label">今日训练</div>
+          <span id="training-status" class="status-chip">—</span>
+        </div>
+        <div id="training-empty" class="empty-state" hidden>今日暂无训练记录</div>
+        <div id="activity-list"></div>
+        <div class="training-footer">
+          <div><span class="muted tiny">今日总距离</span><strong id="total-distance">—</strong></div>
+          <div><span class="muted tiny">总时长</span><strong id="total-duration">—</strong></div>
+          <div><span class="muted tiny">平均心率</span><strong id="total-heart-rate">—</strong></div>
+        </div>
+      </section>
+
+      <section class="metric-grid">
+        <article class="metric-card card">
+          <div class="metric-icon sleep-icon">☾</div>
+          <div class="muted tiny">睡眠</div>
+          <strong id="sleep-value">—</strong>
+          <span id="sleep-score" class="metric-note">评分 —</span>
+        </article>
+        <article class="metric-card card">
+          <div class="metric-icon heart-icon">♥</div>
+          <div class="muted tiny">静息心率</div>
+          <strong id="rhr-value">—</strong>
+          <span id="rhr-trend" class="metric-note">—</span>
+        </article>
+        <article class="metric-card card">
+          <div class="metric-icon hrv-icon">∿</div>
+          <div class="muted tiny">睡眠 HRV</div>
+          <strong id="hrv-value">—</strong>
+          <span id="hrv-status" class="metric-note">—</span>
+        </article>
+        <article class="metric-card card">
+          <div class="metric-icon recovery-icon">↗</div>
+          <div class="muted tiny">恢复状态</div>
+          <strong id="recovery-value">—</strong>
+          <span id="recovery-level" class="metric-note">—</span>
+        </article>
+        <article class="metric-card card steps-card">
+          <div class="metric-icon steps-icon">⌁</div>
+          <div class="muted tiny">步数</div>
+          <strong id="steps-value">—</strong>
+          <span class="metric-note">今日累计</span>
+        </article>
+        <article class="metric-card card spo2-card">
+          <div class="metric-icon spo2-icon">O₂</div>
+          <div class="muted tiny">血氧</div>
+          <strong id="spo2-value">—</strong>
+          <span id="spo2-status" class="metric-note">—</span>
+        </article>
+      </section>
+
+      <section class="card plan-card">
+        <div class="card-heading">
+          <div class="section-label">训练计划</div>
+          <span id="plan-load" class="muted tiny">—</span>
+        </div>
+        <div class="plan-row">
+          <div class="plan-symbol">↗</div>
+          <div>
+            <strong id="plan-title">未设置训练计划</strong>
+            <p id="plan-description" class="muted">—</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card trend-card">
+        <div class="card-heading">
+          <div class="section-label">近 7 日状态</div>
+          <span id="load-summary" class="muted tiny">负荷 —</span>
+        </div>
+        <div class="trend-block"><span class="muted tiny">静息心率</span><div id="rhr-bars" class="bars"></div></div>
+        <div class="trend-block"><span class="muted tiny">睡眠评分</span><div id="sleep-bars" class="bars warm"></div></div>
+      </section>
+
+      <footer class="footer-line">
+        <span id="last-updated">最后更新 —</span>
+        <span>Pulse · 本地优先 · 私密可控</span>
+      </footer>
+      </div>
+    </main>
+
+    <dialog id="settings-dialog" class="settings-dialog">
+      <form method="dialog" id="settings-form">
+        <div class="dialog-heading"><h2>看板设置</h2><button value="cancel" class="icon-button">×</button></div>
+        <label>数据来源
+          <select id="data-source">
+            <option value="demo">演示数据</option>
+            <option value="codex">Codex + COROS MCP</option>
+            <option value="bridge">自定义本地 bridge</option>
+          </select>
+        </label>
+        <label id="bridge-url-row">本地数据桥接地址 <input id="bridge-url" type="url" placeholder="http://127.0.0.1:19090" /></label>
+        <p id="bridge-help" class="muted tiny">自定义 bridge 需要提供 <code>/api/snapshot</code> 与 <code>/api/insight</code>。</p>
+        <p id="codex-handoff-help" class="muted tiny" hidden>Pulse 会静默监听本机 Handoff；Codex 插件发布完整快照后，窗口会自动更新。该过程不会让 Electron 直接取得 COROS 权限。</p>
+        <label>自动读取间隔
+          <select id="refresh-interval"><option value="1">1 分钟</option><option value="5">5 分钟</option><option value="15">15 分钟</option><option value="30">30 分钟</option><option value="60">60 分钟</option></select>
+        </label>
+        <p class="muted tiny">仅检查本机是否有新快照，不会创建 Codex 任务或再次请求 COROS。</p>
+        <label>主题
+          <select id="theme"><option value="dark">深色</option><option value="light">浅色</option><option value="system">跟随系统</option></select>
+        </label>
+        <label>窗口透明度 <span id="opacity-label">96%</span><input id="opacity" type="range" min="40" max="100" step="1" /></label>
+        <label class="switch-row"><span>始终置顶</span><input id="always-on-top" type="checkbox" /><span class="switch"></span></label>
+        <label class="switch-row"><span>开机自启</span><input id="launch-at-login" type="checkbox" /><span class="switch"></span></label>
+        <label class="switch-row"><span>精简模式</span><input id="compact-mode" type="checkbox" /><span class="switch"></span></label>
+        <div class="bridge-test-row"><button id="test-bridge-button" type="button" class="secondary-button">测试桥接</button><span id="bridge-test-status" class="muted tiny"></span></div>
+        <div class="dialog-actions"><button value="cancel" class="secondary-button">取消</button><button id="save-settings" value="default" class="primary-button">保存设置</button></div>
+      </form>
+    </dialog>
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+node_modules/
+.npm-cache/
+.runtime-check*/
+dist/
+release/
+.env
+*.log
+src/user-data.json
+config/local*.json
+data/private/
+*.fit
+Training schedule/

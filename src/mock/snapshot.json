@@ -1,0 +1,49 @@
+{
+  "meta": {
+    "source": "demo",
+    "asOf": "2026-07-24T18:10:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "lastUpdated": "2026-07-24T18:10:00+08:00"
+  },
+  "health": {
+    "restingHeartRate": { "value": 53, "unit": "bpm", "trend": -2 },
+    "hrv": { "value": 82, "unit": "ms", "status": "above_normal" },
+    "sleep": { "durationMinutes": 392, "score": 95 },
+    "spo2": { "value": null, "unit": "%", "status": "unavailable" },
+    "steps": { "value": 9551, "unit": "steps" },
+    "recovery": { "value": 93, "unit": "%", "level": "heavy_training_allowed" }
+  },
+  "todayActivities": [
+    {
+      "sport": "跑步",
+      "type": "outdoor_run",
+      "status": "completed",
+      "durationSeconds": 2574,
+      "distanceKm": 8,
+      "paceSecondsPerKm": 322,
+      "heartRate": 145,
+      "calories": 510
+    }
+  ],
+  "plan": {
+    "name": "今日训练",
+    "status": "completed",
+    "title": "轻松跑",
+    "description": "7.27 km · 约 40 分钟",
+    "load": 71
+  },
+  "load": {
+    "comment": "Optimized",
+    "shortTerm": 66,
+    "longTerm": 65,
+    "ratio": 1.01
+  },
+  "trends": {
+    "restingHeartRate": [52, 52, 56, 53, 57, 55, 53],
+    "sleepScore": [98, 89, 27, 94, 49, 91, 95]
+  },
+  "insight": {
+    "text": "睡眠评分 95，恢复 93%，短期与长期训练负荷接近。今天的训练刺激已经完成，今晚优先补足睡眠，明天根据晨起状态决定是否安排质量课。",
+    "tags": ["恢复良好", "负荷平衡", "关注睡眠"]
+  }
+}
