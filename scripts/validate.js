@@ -4,6 +4,8 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const fixturePath = path.join(root, 'src', 'mock', 'snapshot.json');
 const packagePath = path.join(root, 'package.json');
+const iconPath = path.join(root, 'build', 'icon.ico');
+const trayPngPath = path.join(root, 'build', 'tray-icon.png');
 
 function fail(message) {
   console.error(`Validation failed: ${message}`);
@@ -35,8 +37,28 @@ try {
   if (pkg.name !== 'pulse-dashboard' || pkg.productName !== 'Pulse Dashboard' || pkg.build?.appId !== 'app.pulse.dashboard') {
     fail('package.json is missing the Pulse product identity');
   }
+  if (pkg.build?.win?.icon !== 'build/icon.ico') fail('Windows build must use the native ICO application icon');
+  const extraResources = Array.isArray(pkg.build?.extraResources) ? pkg.build.extraResources : [];
+  if (!extraResources.some(({ from, to }) => from === 'build/icon.ico' && to === 'pulse-tray.ico')) {
+    fail('packaged app must include the native tray ICO resource');
+  }
+  if (!extraResources.some(({ from, to }) => from === 'build/tray-icon.png' && to === 'pulse-tray.png')) {
+    fail('packaged app must include the PNG tray fallback resource');
+  }
 } catch (error) {
   fail(`cannot parse ${packagePath}: ${error.message}`);
+}
+
+for (const [label, filePath, header] of [
+  ['Windows ICO', iconPath, [0, 0, 1, 0]],
+  ['tray PNG', trayPngPath, [137, 80, 78, 71, 13, 10, 26, 10]]
+]) {
+  try {
+    const buffer = fs.readFileSync(filePath);
+    if (!header.every((value, index) => buffer[index] === value)) fail(`${label} has an invalid file header`);
+  } catch (error) {
+    fail(`cannot read ${filePath}: ${error.message}`);
+  }
 }
 
 const forbidden = /-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----|["']?(?:access|refresh)[_-]?token["']?\s*[:=]\s*["'][^"'\r\n]{8,}["']/i;

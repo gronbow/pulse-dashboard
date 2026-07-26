@@ -243,6 +243,77 @@ function smokeScreenshotPath() {
   return argument ? path.resolve(argument.slice(prefix.length)) : '';
 }
 
+function trayIconCheckPath() {
+  const prefix = '--pulse-tray-icon-check=';
+  const argument = process.argv.find((value) => value.startsWith(prefix));
+  return argument ? path.resolve(argument.slice(prefix.length)) : '';
+}
+
+function trayIconCandidates() {
+  if (app.isPackaged) {
+    return [
+      path.join(process.resourcesPath, 'pulse-tray.ico'),
+      path.join(process.resourcesPath, 'pulse-tray.png')
+    ];
+  }
+  return [
+    path.join(__dirname, '..', 'build', 'icon.ico'),
+    path.join(__dirname, '..', 'build', 'tray-icon.png')
+  ];
+}
+
+function inspectTrayImage(image) {
+  if (!image || image.isEmpty()) throw new Error('托盘图标为空');
+  const sample = image.resize({ width: 32, height: 32, quality: 'best' });
+  const { width, height } = sample.getSize();
+  if (width !== 32 || height !== 32) throw new Error('托盘图标无法缩放到 32x32');
+
+  const bitmap = sample.toBitmap();
+  let visiblePixels = 0;
+  let limePixels = 0;
+  let darkPixels = 0;
+  for (let offset = 0; offset < bitmap.length; offset += 4) {
+    const blue = bitmap[offset];
+    const green = bitmap[offset + 1];
+    const red = bitmap[offset + 2];
+    const alpha = bitmap[offset + 3];
+    if (alpha > 24) visiblePixels += 1;
+    if (alpha > 80 && green > 160 && red > 120 && green > blue + 45) limePixels += 1;
+    if (alpha > 80 && red < 70 && green < 90 && blue < 70) darkPixels += 1;
+  }
+  if (visiblePixels < 300 || limePixels < 120 || darkPixels < 20) {
+    throw new Error('托盘图标像素内容不完整');
+  }
+
+  return {
+    empty: false,
+    size: image.getSize(),
+    sampleSize: { width, height },
+    scaleFactors: image.getScaleFactors(),
+    pngBytes: sample.toPNG().length,
+    visiblePixels,
+    limePixels,
+    darkPixels
+  };
+}
+
+function loadTrayIcon() {
+  const errors = [];
+  for (const candidate of trayIconCandidates()) {
+    if (!fs.existsSync(candidate)) {
+      errors.push(`${candidate}: 文件不存在`);
+      continue;
+    }
+    const image = nativeImage.createFromPath(candidate);
+    try {
+      return { image, sourcePath: candidate, inspection: inspectTrayImage(image) };
+    } catch (error) {
+      errors.push(`${candidate}: ${error.message}`);
+    }
+  }
+  throw new Error(`无法加载 Pulse 托盘图标；${errors.join('；')}`);
+}
+
 function smokeScrollSelector() {
   if (app.isPackaged) return '';
   const selector = String(process.env.PULSE_SMOKE_SCROLL_SELECTOR || '').trim();
@@ -365,9 +436,8 @@ function createWindow() {
 }
 
 function createTray() {
-  const traySvg = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#b7f34a"/><path d="M9 24V8h7c4.3 0 7 2.2 7 5.8s-2.7 5.7-7 5.7h-3V24H9zm4-8h2.8c1.9 0 3.2-.7 3.2-2.2s-1.3-2.2-3.2-2.2H13V16z" fill="#11170d"/></svg>';
-  const trayIcon = nativeImage.createFromDataURL(`data:image/svg+xml;base64,${Buffer.from(traySvg).toString('base64')}`);
-  tray = new Tray(trayIcon);
+  const { image } = loadTrayIcon();
+  tray = new Tray(image);
   const menu = Menu.buildFromTemplate([
     { label: '显示 / 隐藏看板', click: () => mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show() },
     { label: '立即刷新', click: () => mainWindow.webContents.send('dashboard:refresh') },
@@ -378,6 +448,24 @@ function createTray() {
   tray.setToolTip('Pulse 健康与训练看板');
   tray.setContextMenu(menu);
   tray.on('double-click', () => mainWindow.show());
+}
+
+function runTrayIconCheck(outputPath) {
+  const { image, sourcePath, inspection } = loadTrayIcon();
+  tray = new Tray(image);
+  tray.setToolTip('Pulse 健康与训练看板');
+  const result = {
+    ok: true,
+    packaged: app.isPackaged,
+    sourcePath,
+    trayCreated: Boolean(tray),
+    bounds: tray.getBounds(),
+    ...inspection
+  };
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, JSON.stringify(result, null, 2), 'utf8');
+  tray.destroy();
+  tray = null;
 }
 
 function startCodexHandoffBridge() {
@@ -405,6 +493,17 @@ if (!hasSingleInstanceLock) {
   });
   app.whenReady().then(() => {
     Menu.setApplicationMenu(null);
+    const trayCheckOutput = trayIconCheckPath();
+    if (trayCheckOutput) {
+      try {
+        runTrayIconCheck(trayCheckOutput);
+        app.exit(0);
+      } catch (error) {
+        console.error(`Pulse tray icon check failed: ${error.message}`);
+        app.exit(1);
+      }
+      return;
+    }
     startCodexHandoffBridge();
     createWindow();
     createTray();
