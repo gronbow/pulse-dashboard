@@ -31,6 +31,7 @@ Pulse 是由大模型宿主驱动的桌面数据看板：COROS MCP 在宿主侧�
 
 - [x] 生成 Windows x64 NSIS 测试安装包，并验证解包版可执行文件与本机 Handoff 启动。
 - [x] Windows 托盘改用随包携带的多尺寸 ICO，并加入开发态 / 解包态空图检查。
+- [x] Windows 窗口显式设置 Pulse 图标与 `AppUserModelID`，源码模式不再继承 Electron 默认图标。
 - [ ] 在测试机完成人工安装 / 卸载验收。
 - [x] 编写连接、隐私、历史审计与发布检查说明。
 - [ ] 创建干净公开分支，经用户确认后上传 GitHub 并开展小范围试用。

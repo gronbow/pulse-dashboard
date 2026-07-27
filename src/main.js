@@ -8,6 +8,7 @@ const { normalizeSnapshot } = require('./snapshot');
 const { createDataSourceAdapter } = require('./adapters/data-source-adapter');
 const { CODEX_HANDOFF_PORT, CODEX_HANDOFF_URL, createCodexHandoffServer } = require('../bridge/codex-handoff-server');
 
+const WINDOWS_APP_ID = 'app.pulse.dashboard';
 const DEFAULT_CONFIG = {
   dataSource: 'demo',
   bridgeUrl: '',
@@ -24,6 +25,7 @@ let mainWindow;
 let tray;
 let quitting = false;
 let codexHandoffServer;
+if (process.platform === 'win32') app.setAppUserModelId(WINDOWS_APP_ID);
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
 function configPath() {
@@ -249,6 +251,12 @@ function trayIconCheckPath() {
   return argument ? path.resolve(argument.slice(prefix.length)) : '';
 }
 
+function windowIconCheckPath() {
+  const prefix = '--pulse-window-icon-check=';
+  const argument = process.argv.find((value) => value.startsWith(prefix));
+  return argument ? path.resolve(argument.slice(prefix.length)) : '';
+}
+
 function trayIconCandidates() {
   if (app.isPackaged) {
     return [
@@ -297,7 +305,7 @@ function inspectTrayImage(image) {
   };
 }
 
-function loadTrayIcon() {
+function loadPulseIcon() {
   const errors = [];
   for (const candidate of trayIconCandidates()) {
     if (!fs.existsSync(candidate)) {
@@ -389,6 +397,7 @@ function createWindow() {
   const config = readConfig();
   const startHidden = process.argv.includes('--hidden');
   const smokeOutput = smokeScreenshotPath();
+  const windowIcon = loadPulseIcon();
   mainWindow = new BrowserWindow({
     width: 430,
     height: 820,
@@ -400,6 +409,7 @@ function createWindow() {
     resizable: true,
     alwaysOnTop: config.alwaysOnTop,
     backgroundColor: '#00000000',
+    icon: windowIcon.image,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -408,6 +418,7 @@ function createWindow() {
       spellcheck: false
     }
   });
+  configureWindowIdentity(mainWindow, windowIcon);
   applyWindowConfig(config);
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -436,7 +447,7 @@ function createWindow() {
 }
 
 function createTray() {
-  const { image } = loadTrayIcon();
+  const { image } = loadPulseIcon();
   tray = new Tray(image);
   const menu = Menu.buildFromTemplate([
     { label: '显示 / 隐藏看板', click: () => mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show() },
@@ -451,7 +462,7 @@ function createTray() {
 }
 
 function runTrayIconCheck(outputPath) {
-  const { image, sourcePath, inspection } = loadTrayIcon();
+  const { image, sourcePath, inspection } = loadPulseIcon();
   tray = new Tray(image);
   tray.setToolTip('Pulse 健康与训练看板');
   const result = {
@@ -466,6 +477,48 @@ function runTrayIconCheck(outputPath) {
   fs.writeFileSync(outputPath, JSON.stringify(result, null, 2), 'utf8');
   tray.destroy();
   tray = null;
+}
+
+function configureWindowIdentity(window, iconAsset) {
+  if (process.platform !== 'win32') {
+    return { appId: '', appDetailsApplied: false, windowIconApplied: false };
+  }
+  window.setIcon(iconAsset.image);
+  window.setAppDetails({
+    appId: WINDOWS_APP_ID,
+    appIconPath: iconAsset.sourcePath,
+    appIconIndex: 0
+  });
+  return {
+    appId: WINDOWS_APP_ID,
+    appDetailsApplied: true,
+    windowIconApplied: true
+  };
+}
+
+function runWindowIconCheck(outputPath) {
+  const iconAsset = loadPulseIcon();
+  const checkWindow = new BrowserWindow({
+    width: 240,
+    height: 180,
+    show: false,
+    icon: iconAsset.image
+  });
+  const identity = configureWindowIdentity(checkWindow, iconAsset);
+  const nativeWindowHandle = checkWindow.getNativeWindowHandle();
+  const result = {
+    ok: true,
+    packaged: app.isPackaged,
+    processExecutable: process.execPath,
+    sourcePath: iconAsset.sourcePath,
+    windowCreated: !checkWindow.isDestroyed(),
+    nativeHandleBytes: nativeWindowHandle.length,
+    ...identity,
+    ...iconAsset.inspection
+  };
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, JSON.stringify(result, null, 2), 'utf8');
+  checkWindow.destroy();
 }
 
 function startCodexHandoffBridge() {
@@ -500,6 +553,17 @@ if (!hasSingleInstanceLock) {
         app.exit(0);
       } catch (error) {
         console.error(`Pulse tray icon check failed: ${error.message}`);
+        app.exit(1);
+      }
+      return;
+    }
+    const windowCheckOutput = windowIconCheckPath();
+    if (windowCheckOutput) {
+      try {
+        runWindowIconCheck(windowCheckOutput);
+        app.exit(0);
+      } catch (error) {
+        console.error(`Pulse window icon check failed: ${error.message}`);
         app.exit(1);
       }
       return;

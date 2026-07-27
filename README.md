@@ -4,13 +4,13 @@ Pulse 是一个由大模型宿主驱动的桌面数据看板，用于在电脑�
 
 ## 当前版本
 
-桌面端 v0.5.2 Beta 已跑通并加固这条数据链路：
+桌面端 v0.5.3 Beta 已跑通并加固这条数据链路：
 
 ```text
 COROS MCP → Codex Pulse 插件 → 本机 Codex Handoff → Pulse 桌面看板 → AI 训练建议
 ```
 
-- 无边框、圆角、可拖动桌面窗口，支持托盘、置顶、透明度和主题；Windows 托盘使用随包携带的多尺寸原生图标。
+- 无边框、圆角、可拖动桌面窗口，支持托盘、置顶、透明度和主题；Windows 托盘与任务栏均显式使用 Pulse 多尺寸原生图标。
 - 健康卡片：睡眠、睡眠评分、静息心率、睡眠 HRV、恢复状态和训练负荷；当天尚未生成某项指标时，可显示带日期的最近有效值。
 - 训练卡片：距离、时长、配速、心率、热量和训练计划。
 - 近 7 日状态卡片展示逐日短期训练负荷，并同时保留当前短期负荷、长期负荷和比值。
@@ -19,7 +19,7 @@ COROS MCP → Codex Pulse 插件 → 本机 Codex Handoff → Pulse 桌面看板
 - 不完整健康信号、零时长跑步和乱码会在覆盖旧快照前被拒绝。
 - Electron 不保存 COROS 密码、Token 或供应商 API 配置。
 
-v0.5.2 仅修复桌面壳的 Windows 托盘图标和对应验证；Codex 插件数据流程未改动，现有 v0.5.1 插件继续兼容。
+v0.5.2 修复 Windows 托盘空白图标，v0.5.3 进一步修复源码开发态继承 Electron 默认任务栏图标的问题。Codex 插件数据流程未改动，现有 v0.5.1 插件继续兼容。
 
 ## 运行
 
@@ -77,6 +77,7 @@ npm run dist:win
 
 - `npm test` 检查数据归一化、Handoff、UTF-8 发布和当前公开文件隐私。
 - `npm run test:tray` 会真实创建 Windows 托盘对象，并检查图标不是空图或透明占位图。
+- `npm run test:window-icon` 会检查 Windows 窗口图标与 `AppUserModelID` 已绑定到 Pulse。
 - `npm run test:desktop` 启动真实 Electron 窗口并生成本地截图。
 - `npm run pack:win` 生成未安装目录；`npm run dist:win` 生成未签名的 Windows 测试安装包。
 - 构建使用严格文件白名单，不会把本地 `.fit`、训练计划、运行缓存或插件开发文件打进桌面安装包。
@@ -97,6 +98,7 @@ npm run dist:win
 路线图见 [docs/ROADMAP.md](docs/ROADMAP.md)。
 发布前逐项验收与已知限制见 [v0.5.1 完成度审计](docs/V0.5.1_COMPLETION_AUDIT.md)。
 本次桌面修复记录见 [v0.5.2 Windows 托盘图标修复](docs/V0.5.2_TRAY_ICON_FIX.md)。
+任务栏修复记录见 [v0.5.3 Windows 任务栏图标修复](docs/V0.5.3_TASKBAR_ICON_FIX.md)。
 
 ## License
 

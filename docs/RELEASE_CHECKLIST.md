@@ -7,6 +7,7 @@
 - [ ] `npm run audit:production` 通过；只打包的运行时依赖不得有已知高危漏洞。
 - [ ] `npm run test:desktop` 生成真实 Electron 窗口截图，标题栏、圆角卡片和内置滚动条无回归。
 - [ ] `npm run test:tray` 在开发态和解包态均通过；系统托盘人工显示 Pulse 标志而不是空白占位框。
+- [ ] `npm run test:window-icon` 在开发态和解包态均通过；任务栏不再显示 Electron 默认原子图标。
 - [ ] `npm run pack:win` 成功，解包目录中只含桌面运行所需文件。
 - [ ] `npm run dist:win` 成功生成 Windows x64 测试安装包。
 - [ ] 安装包为测试用途；未完成代码签名时明确提示 Windows 可能显示未知发布者警告。
@@ -37,6 +38,7 @@
 - [ ] 单项指标使用自己的 `date`；凌晨尚未归档时，最近有效值显示其真实日期。
 - [ ] “近 7 日状态”包含七个逐日训练负荷点，缺失时显示明确占位而不是空白图表。
 - [ ] Windows 托盘图标在 100% 与当前系统缩放比例下清晰可辨。
+- [ ] Windows 任务栏按钮使用 Pulse 图标，窗口分组的 `AppUserModelID` 为 `app.pulse.dashboard`。
 
 ## GitHub 前的人工确认
 
