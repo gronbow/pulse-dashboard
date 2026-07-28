@@ -1,116 +1,153 @@
-# Pulse：AI 健康教练桌面看板
+# Pulse Dashboard
 
-Pulse 是一个由大模型宿主驱动的桌面数据看板，用于在电脑桌面展示身体状态、今日训练、训练计划和 AI 洞察。首个宿主是 Codex：Codex 调用已授权的 COROS MCP，Pulse 负责把标准化结果渲染为真正的桌面卡片。
+Pulse 是一个由 Codex 宿主驱动的 Windows 健康与训练桌面看板。Codex 通过用户已经连接并授权的 COROS MCP 读取数据、生成训练洞察，再将经过归一化和脱敏的快照交给 Pulse 在桌面卡片中展示。
 
-![Pulse v0.5.4 合成演示数据看板](docs/assets/pulse-dashboard-v0.5.4-demo.png)
+> **v0.5.4 Beta**：这是可运行的公开测试版，不是官方 COROS 客户端，不是独立数据监测 App，也不是医疗产品。真实数据更新仍需从 Codex 任务发起；桌面上的“读取同步”只重读本机已有快照。
 
-> 截图仅使用仓库内的合成演示数据，不包含真实用户健康信息。
+## 展示效果
 
-## 当前版本
+以下图片仅包含仓库内的合成演示数据或首次同步空状态，不含真实用户健康信息。
 
-桌面端 v0.5.4 Beta 已跑通并加固这条数据链路：
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/assets/pulse-dashboard-v0.5.4-demo.png" alt="Pulse 总览，合成演示数据">
+      <br><sub>桌面总览：今日训练与主要健康指标</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/assets/pulse-dashboard-health-load-demo.png" alt="Pulse 健康和七日训练负荷，合成演示数据">
+      <br><sub>健康、训练计划与最近七日训练负荷</sub>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2">
+      <img src="docs/assets/pulse-dashboard-awaiting-sync.png" alt="Pulse 等待首次 Codex 同步的空状态">
+      <br><sub>真实数据模式首次同步前：明确显示空值，不用演示数字冒充真实结果</sub>
+    </td>
+  </tr>
+</table>
+
+## 它能做什么
+
+- 展示睡眠时长与评分、静息心率、睡眠 HRV、恢复状态、步数、日均压力等指标；旧格式快照没有压力字段时兼容显示血氧。
+- 展示今日训练的距离、时长、配速、平均心率、热量，以及当天或下一次训练计划。
+- 展示当前短期/长期训练负荷、负荷比值和最近七日逐日趋势。
+- 由 Codex 综合至少两个有效健康信号、训练完成情况和计划，生成简洁的 AI 今日洞察。
+- 提供无边框圆角窗口、拖动、置顶、透明度、深浅主题、紧凑模式、托盘和开机启动选项。
+- 在 Bridge 暂时不可用时保留同一数据来源的最后一份完整快照；不完整数据、零时长跑步和明显乱码不会覆盖旧快照。
+- 提供独立的合成演示模式，用于检查布局和交互，不连接真实账户。
+
+## 它不是什么
+
+- **不是独立 COROS 客户端**：Pulse 没有 COROS OAuth、账户登录、Token 管理或供应商 API 直连能力。
+- **不是无感后台采集器**：Electron 进程不能继承 Codex 任务中的 MCP 权限，也不会绕过 Codex 直接查询 COROS。
+- **不是实时监护设备**：显示的是最近一次成功生成的快照，不是连续生命体征流。
+- **不是医疗工具**：AI 洞察仅供训练参考，不构成诊断、治疗或医疗建议。
+- **不是 COROS 官方产品**：COROS 名称及相关商标归其权利人所有。
+
+## 数据如何更新
 
 ```text
-COROS MCP → Codex Pulse 插件 → 本机 Codex Handoff → Pulse 桌面看板 → AI 训练建议
+COROS MCP → Codex Pulse 插件 → 127.0.0.1 Handoff → Pulse 桌面看板
 ```
 
-- 无边框、圆角、可拖动桌面窗口，支持托盘、置顶、透明度和主题；Windows 托盘与任务栏均显式使用 Pulse 多尺寸原生图标。
-- 健康卡片：睡眠、睡眠评分、静息心率、睡眠 HRV、恢复状态、步数、日均压力和训练负荷；当天尚未生成某项指标时，可显示带日期的最近有效值。
-- 训练卡片：距离、时长、配速、心率、热量和训练计划。
-- 近 7 日状态卡片展示逐日短期训练负荷，并同时保留当前短期负荷、长期负荷和比值。
-- 支持演示数据、Codex + COROS MCP 和自定义 HTTP Bridge；含缓存和离线回退。
-- Codex 发布完整快照后，桌面窗口会立即自动读取；不需要再点一次刷新。
-- 只有主动选择“演示数据”时才显示合成数字；Codex/Bridge 尚无真实快照和同源缓存时显示明确空状态。
-- 不完整健康信号、零时长跑步和乱码会在覆盖旧快照前被拒绝。
-- Electron 不保存 COROS 密码、Token 或供应商 API 配置。
+1. Pulse 在设置中选择“Codex + COROS MCP”，并在本机启动只监听 `127.0.0.1:19091` 的 Handoff。
+2. 用户在新的 Codex 任务中输入：`刷新我的 Pulse 今日健康与训练快照`。
+3. Pulse 插件调用当前 Codex 中已经连接并授权的 COROS MCP，读取健康、睡眠、恢复、活动、计划和负荷数据。
+4. 插件先执行完整性与 UTF-8 质量检查，再将规范化 JSON 发布给本机 Handoff。
+5. Pulse 收到成功事件后立即重读并渲染；无需再点击一次按钮。
 
-v0.5.2 修复 Windows 托盘空白图标，v0.5.3 修复源码开发态继承 Electron 默认任务栏图标的问题，v0.5.4 增加面向伏案人群的日均压力卡片，并在压力缺失时回退显示血氧。旧快照仍兼容。
+桌面右上角的“读取同步”、托盘中的“读取最新同步”和设置里的 1–60 分钟间隔，都只检查**本机是否出现了新快照**。它们不会新建 Codex 任务，也不会主动调用 COROS。生成新的即时数据仍需第 2 步。
 
-## 运行
+## 安装公开 Beta
 
-需要 Node.js 20+。
+### 1. 安装 Windows 桌面版
+
+从 [GitHub Releases](https://github.com/gronbow/pulse-dashboard/releases) 下载 `Pulse-Dashboard-Setup-0.5.4-x64.exe`。
+
+要求：
+
+- Windows 10/11 x64。
+- 安装包当前未做代码签名，Windows SmartScreen 可能显示警告；请只从本仓库 Release 下载，并核对 Release 中的 SHA-256。
+- 桌面安装包已包含运行环境，普通安装不需要另装 Node.js。
+
+### 2. 安装 Codex 插件
+
+在可使用 Codex CLI 的终端执行：
+
+```powershell
+codex plugin marketplace add gronbow/pulse-dashboard --ref main
+codex plugin add pulse-dashboard@pulse-dashboard
+```
+
+然后新建一个 Codex 任务，使新安装的插件被加载。当前公开流程以 `codex-cli 0.145.0-alpha.30` 验证；Codex 仍在迭代，后续版本的插件命令可能变化。
+
+### 3. 连接并刷新
+
+1. 启动 Pulse，在设置中选择“Codex + COROS MCP”并保存。
+2. 确认同一 Codex 环境已经连接并授权 COROS MCP。
+3. 在新的 Codex 任务中说：`刷新我的 Pulse 今日健康与训练快照`。
+4. Codex 报告发布成功后，Pulse 会自动更新。
+
+若只想预览 UI，在设置中选择“演示数据”即可；演示模式与真实数据模式有清晰标识。
+
+## 当前限制
+
+| 项目 | v0.5.4 Beta 的实际状态 |
+| --- | --- |
+| COROS 数据权限 | 由 Codex 中已连接的 COROS MCP 提供；仓库和安装包不提供 COROS 接口或授权。 |
+| 刷新方式 | 新查询必须在 Codex 任务中触发；桌面按钮与定时间隔只重读本机快照。 |
+| 后台自动化 | 默认不创建 Codex 定时任务，因为这类运行会留下可见任务记录，无法做到完全无感。 |
+| 数据新鲜度 | 取决于 COROS MCP 返回内容和最近一次成功发布的时间；当天未归档指标可能显示带真实日期的最近有效值。 |
+| 缺失数据 | 使用 `—`、`null`、空数组或明确提示，不用 `0` 或 Demo 数据补齐真实模式。 |
+| 平台 | 目前仅构建并验证 Windows x64；没有 macOS/Linux 安装包。 |
+| 安装签名 | 当前 Beta 未签名，可能触发 SmartScreen；尚未提供自动更新。 |
+| 本机存储 | 规范化快照与缓存以明文 JSON 保存在当前 Windows 用户的应用数据目录；不含凭据，但仍属于敏感健康信息。 |
+| 性能 | 本机发布候选采样约 0.31% 单核、约 404 MB 总工作集；CPU 达标，Electron 内存仍高于原 150 MB 目标。 |
+| 多平台/多品牌 | 架构保留适配层，但本 Beta 只验证 Codex + COROS MCP 路径。 |
+| AI 建议 | 依赖本次可用数据，数据不足时会说明限制；不能代替教练或医生。 |
+
+## 隐私与安全边界
+
+- Handoff 和自定义 HTTP Bridge 都只允许 `localhost`、`127.0.0.1` 或 IPv6 loopback，不向局域网开放。
+- Pulse 不保存 COROS 密码、Token、Cookie、原始 MCP 响应、活动内部 ID 或坐标。
+- 公开仓库只提交合成快照和空状态截图；`.fit`、GPX/TCX/KML、运行缓存、私有配置和训练计划目录均被排除并接受自动审计。
+- 快照发布前至少需要两个有效健康信号、有效 AI 洞察；有距离的活动必须有正时长。
+- 如果你共用 Windows 账户，或设备存在更高的本地数据保护要求，应谨慎使用当前明文缓存 Beta。
+
+完整字段和接口约定见 [Bridge Contract](docs/BRIDGE_CONTRACT.md)，Codex 插件说明见 [Codex Plugin](docs/CODEX_PLUGIN.md)。
+
+## 从源码运行与验证
+
+开发环境需要 Node.js 20+：
 
 ```powershell
 npm install
 npm start
 ```
 
-首次启动默认使用合成演示数据。它仅用于检查布局和交互，不连接真实账户。
-
-## 测试 Codex 桌面闭环
-
-1. 启动 Pulse，在右上角设置中把数据源改为“Codex + COROS MCP”。
-2. 在 Codex 中安装 / 更新本仓库自带的 `pulse-dashboard` 插件，并新开一个任务以载入新版本。
-3. 在当前任务中让 Pulse 刷新今日快照。Codex 会调用已授权的 COROS MCP，并把规范化快照仅发布给本机 Handoff。
-4. 发布成功后，Pulse 窗口会立即自动更新。右上角“读取同步”只是手动重读本机最新快照的备用入口。
-
-桌面端的自动读取只检查本机是否出现新快照，不会创建 Codex 任务，也不会直接访问 COROS。现阶段每次新的 MCP 查询仍必须发生在 Codex 任务中；Codex 的独立计划任务会产生可见运行记录，因此项目默认不启用这类定时同步。
-
-Handoff 只监听 `http://127.0.0.1:19091`，不对局域网开放。完整交接说明见 [桌面交接约定](docs/BRIDGE_CONTRACT.md)，插件使用说明见 [Codex 插件说明](docs/CODEX_PLUGIN.md)。
-
-## 自定义 HTTP Bridge
-
-如需验证通用协议，可运行：
-
-```powershell
-npm run bridge:demo
-```
-
-然后在设置中选择“自定义 HTTP Bridge”，填写 `http://127.0.0.1:19090`。Bridge 需要提供：
-
-- `GET /api/health`
-- `GET /api/snapshot?timezone=Asia%2FShanghai`
-- `POST /api/insight`，请求体为 `{ "snapshot": { ... } }`
-
-## 隐私与产品边界
-
-- `src/mock/snapshot.json` 是合成演示数据，不是个人健康数据。
-- `.fit` 文件、环境变量、私有数据目录和本地配置默认不进入 Git。
-- Pulse 不开发独立 COROS OAuth、Token 管理或供应商 API 直连；授权和工具调用属于 LLM Host。
-- AI 洞察仅供训练参考，不构成医疗建议。
-- 商标清查、申请、应用上架和正式发布在测试版真实数据闭环稳定后再评估。
-
-## 验证与 Windows 测试包
+常用验证：
 
 ```powershell
 npm test
+npm run audit:history
 npm run audit:production
 npm run test:desktop
-npm run pack:win
+npm run test:release
 npm run dist:win
 ```
 
-- `npm test` 检查数据归一化、Handoff、UTF-8 发布和当前公开文件隐私。
-- `npm run test:tray` 会在开发态真实创建 Windows 托盘对象，并检查图标不是空图或透明占位图。
-- `npm run test:window-icon` 会在开发态检查 Windows 窗口图标与 `AppUserModelID` 已绑定到 Pulse。
-- `npm run test:packaged` 会直接启动 `release/win-unpacked/Pulse Dashboard.exe`，复测随包图标、托盘和窗口身份。
-- `npm run test:desktop` 启动真实 Electron 窗口并生成本地截图。
-- `npm run test:secondary-health` 分别断言压力卡片和旧快照血氧回退，不只检查截图是否生成。
-- `npm run test:unavailable` 断言 Codex 首次同步前全部健康值为空，不会回退到 Demo。
-- `npm run test:release` 汇总源码、桌面渲染、已打包程序和生产依赖审计；运行前需先构建解包版。
-- `npm run pack:win` 生成未安装目录；`npm run dist:win` 生成未签名的 Windows 测试安装包。
-- 构建使用严格文件白名单，不会把本地 `.fit`、训练计划、运行缓存或插件开发文件打进桌面安装包。
+- `npm test` 覆盖快照归一化、Bridge/Handoff、UTF-8、发布质量门、公开插件包、隐私审计和 Windows 图标。
+- `npm run audit:history` 扫描当前待发布分支可达历史，避免旧提交泄露个人路径、活动 ID 或凭据形态内容。
+- `npm run test:release` 还会启动真实 Electron 窗口和已打包 EXE；运行前需先执行 `npm run pack:win`。
+- 构建采用文件白名单，桌面安装包不会包含本地训练文件、缓存或插件开发目录。
 
-如果中国大陆网络无法从 GitHub 下载 NSIS 构建资源，可仅为当前终端指定镜像后重试：
+发布验收、已知限制和安装包校验记录见 [v0.5.4 发布候选审计](docs/V0.5.4_RELEASE_AUDIT.md)，后续方向见 [Roadmap](docs/ROADMAP.md)。
 
-```powershell
-$env:ELECTRON_BUILDER_BINARIES_MIRROR = 'https://npmmirror.com/mirrors/electron-builder-binaries/'
-npm run dist:win
-```
+## 项目状态与反馈
 
-首次上传 GitHub 前还必须在实际待推送分支上运行 `npm run audit:history`；它只检查该分支 `HEAD` 可到达的历史。`npm run audit:history:all` 可诊断全部本地引用，但保留的私人开发分支可能使它预期失败。当前本地旧提交曾出现个人路径和活动标识，因此正式上传应创建不含旧历史的干净公开分支，且绝不能推送旧开发引用；详见 [发布检查清单](docs/RELEASE_CHECKLIST.md)。
-
-## 项目状态
-
-这是一项跑步数据项目的首个桌面测试版尝试。当前优先级仍是稳定真实的“Codex + COROS MCP → Pulse 桌面看板”闭环，而不是单独开发一个数据监测 App。完全无任务痕迹的后台 MCP 查询尚不属于 Codex 当前可验证的能力边界。
-
-路线图见 [docs/ROADMAP.md](docs/ROADMAP.md)。
-发布前逐项验收与已知限制见 [v0.5.1 完成度审计](docs/V0.5.1_COMPLETION_AUDIT.md)。
-本次桌面修复记录见 [v0.5.2 Windows 托盘图标修复](docs/V0.5.2_TRAY_ICON_FIX.md)。
-任务栏修复记录见 [v0.5.3 Windows 任务栏图标修复](docs/V0.5.3_TASKBAR_ICON_FIX.md)。
-压力卡片设计与验证见 [v0.5.4 日均压力卡片](docs/V0.5.4_STRESS_CARD.md)。
-完整发布证据与尚需外部确认的边界见 [v0.5.4 发布候选审计](docs/V0.5.4_RELEASE_AUDIT.md)。
+这是跑步数据项目的首个公开桌面 Beta，当前优先验证“Codex + COROS MCP → 桌面看板”的完整闭环。欢迎通过 [Issues](https://github.com/gronbow/pulse-dashboard/issues) 报告问题；请勿上传真实健康快照、FIT 文件、坐标、Token、活动 ID 或包含个人信息的日志。
 
 ## License
 
-MIT。第三方数据源名称和商标归其所有者所有；Pulse 不是任何可穿戴平台的官方产品。
+[MIT](LICENSE)。第三方数据源名称和商标归其所有者所有；Pulse 与 COROS 或其他可穿戴平台不存在官方隶属或背书关系。
