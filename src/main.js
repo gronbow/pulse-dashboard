@@ -328,6 +328,26 @@ function smokeScrollSelector() {
   return selector.length <= 80 && /^[#.][A-Za-z0-9_-]+$/.test(selector) ? selector : '';
 }
 
+function smokeTextExpectations() {
+  if (app.isPackaged) return [];
+  const raw = String(process.env.PULSE_SMOKE_EXPECTATIONS || '').trim();
+  if (!raw) return [];
+  const parsed = JSON.parse(raw);
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('smoke text expectations must be a JSON object');
+  }
+  return Object.entries(parsed).map(([selector, expected]) => {
+    if (!/^[#.][A-Za-z0-9_-]+$/.test(selector) || selector.length > 80) {
+      throw new Error(`invalid smoke expectation selector: ${selector}`);
+    }
+    const text = String(expected);
+    if (!text || text.length > 100) {
+      throw new Error(`invalid smoke expectation text for ${selector}`);
+    }
+    return { selector, text };
+  });
+}
+
 async function captureSmokeScreenshot(outputPath) {
   const smokeConfig = await mainWindow.webContents.executeJavaScript(
     'window.pulseDesktop.getConfig()',
@@ -346,6 +366,18 @@ async function captureSmokeScreenshot(outputPath) {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   if (!ready) throw new Error('dashboard did not finish rendering within 3 seconds');
+  for (const expectation of smokeTextExpectations()) {
+    const actual = await mainWindow.webContents.executeJavaScript(
+      `document.querySelector(${JSON.stringify(expectation.selector)})?.textContent || ''`,
+      true
+    );
+    if (!actual.includes(expectation.text)) {
+      throw new Error(
+        `smoke text mismatch for ${expectation.selector}: expected ${JSON.stringify(expectation.text)}, `
+        + `received ${JSON.stringify(actual)}`
+      );
+    }
+  }
   const selector = smokeScrollSelector();
   if (selector) {
     const found = await mainWindow.webContents.executeJavaScript(

@@ -17,6 +17,10 @@ const screenshotPath = path.join(
 );
 const userDataPath = fs.mkdtempSync(path.join(os.tmpdir(), 'pulse-electron-smoke-'));
 const handoffPath = path.join(userDataPath, 'handoff.json');
+const defaultExpectations = JSON.stringify({
+  '#secondary-health-label': '日均压力',
+  '#secondary-health-value': '32'
+});
 
 fs.mkdirSync(outputDirectory, { recursive: true });
 if (fs.existsSync(screenshotPath)) fs.unlinkSync(screenshotPath);
@@ -45,6 +49,8 @@ const child = spawn(electronPath, [
   env: {
     ...process.env,
     PULSE_HANDOFF_PATH: handoffPath,
+    PULSE_SMOKE_EXPECTATIONS: process.env.PULSE_SMOKE_EXPECTATIONS
+      || (liveSnapshotSource ? '' : defaultExpectations),
     PULSE_HANDOFF_PORT: liveSnapshotSource
       ? (process.env.PULSE_SMOKE_HANDOFF_PORT || '19191')
       : '0'

@@ -76,9 +76,12 @@ npm run dist:win
 ```
 
 - `npm test` 检查数据归一化、Handoff、UTF-8 发布和当前公开文件隐私。
-- `npm run test:tray` 会真实创建 Windows 托盘对象，并检查图标不是空图或透明占位图。
-- `npm run test:window-icon` 会检查 Windows 窗口图标与 `AppUserModelID` 已绑定到 Pulse。
+- `npm run test:tray` 会在开发态真实创建 Windows 托盘对象，并检查图标不是空图或透明占位图。
+- `npm run test:window-icon` 会在开发态检查 Windows 窗口图标与 `AppUserModelID` 已绑定到 Pulse。
+- `npm run test:packaged` 会直接启动 `release/win-unpacked/Pulse Dashboard.exe`，复测随包图标、托盘和窗口身份。
 - `npm run test:desktop` 启动真实 Electron 窗口并生成本地截图。
+- `npm run test:secondary-health` 分别断言压力卡片和旧快照血氧回退，不只检查截图是否生成。
+- `npm run test:release` 汇总源码、桌面渲染、已打包程序和生产依赖审计；运行前需先构建解包版。
 - `npm run pack:win` 生成未安装目录；`npm run dist:win` 生成未签名的 Windows 测试安装包。
 - 构建使用严格文件白名单，不会把本地 `.fit`、训练计划、运行缓存或插件开发文件打进桌面安装包。
 
@@ -100,6 +103,7 @@ npm run dist:win
 本次桌面修复记录见 [v0.5.2 Windows 托盘图标修复](docs/V0.5.2_TRAY_ICON_FIX.md)。
 任务栏修复记录见 [v0.5.3 Windows 任务栏图标修复](docs/V0.5.3_TASKBAR_ICON_FIX.md)。
 压力卡片设计与验证见 [v0.5.4 日均压力卡片](docs/V0.5.4_STRESS_CARD.md)。
+完整发布证据与尚需外部确认的边界见 [v0.5.4 发布候选审计](docs/V0.5.4_RELEASE_AUDIT.md)。
 
 ## License
 

@@ -5,7 +5,16 @@ const os = require('node:os');
 const path = require('node:path');
 
 const root = path.join(__dirname, '..');
-const packagedExecutable = String(process.env.PULSE_TRAY_TEST_EXECUTABLE || '').trim();
+const packagedFlag = process.argv.includes('--packaged');
+const configuredExecutable = String(process.env.PULSE_TRAY_TEST_EXECUTABLE || '').trim();
+const packagedExecutable = configuredExecutable
+  || (packagedFlag ? path.join(root, 'release', 'win-unpacked', 'Pulse Dashboard.exe') : '');
+if (packagedExecutable) {
+  assert.ok(
+    fs.existsSync(packagedExecutable),
+    `Packaged Pulse executable not found: ${packagedExecutable}`
+  );
+}
 const executable = packagedExecutable || require('electron');
 const userDataPath = fs.mkdtempSync(path.join(os.tmpdir(), 'pulse-tray-test-'));
 const outputPath = path.join(userDataPath, 'tray-check.json');
