@@ -7,6 +7,7 @@ const normalized = normalizeSnapshot({
     sleep: { durationMinutes: 'bad', score: 0 },
     restingHeartRate: { value: 0, trend: null, date: '20260726' },
     hrv: { value: 0, date: 'not-a-date' },
+    stress: { value: '32', date: '20260728' },
     spo2: { value: 0 },
     steps: { value: null },
     recovery: { value: 0 }
@@ -40,6 +41,8 @@ assert.equal(normalized.health.restingHeartRate.trend, null);
 assert.equal(normalized.health.restingHeartRate.date, '2026-07-26');
 assert.equal(normalized.health.hrv.value, null);
 assert.equal(normalized.health.hrv.date, null);
+assert.equal(normalized.health.stress.value, 32);
+assert.equal(normalized.health.stress.date, '2026-07-28');
 assert.equal(normalized.health.spo2.value, null);
 assert.equal(normalized.health.steps.value, null);
 assert.equal(normalized.health.recovery.value, null);

@@ -56,6 +56,7 @@ async function main() {
         sleep: { durationMinutes: 432, score: 91 },
         restingHeartRate: { value: 53 },
         hrv: { value: 82 },
+        stress: { value: 32 },
         recovery: { value: 93 }
       },
       todayActivities: [
@@ -74,12 +75,14 @@ async function main() {
     assert.equal(received.length, 1);
     assert.equal(received[0].contentType, 'application/json; charset=utf-8');
     assert.equal(JSON.parse(received[0].body).insight.text, validSnapshot.insight.text);
+    assert.equal(JSON.parse(received[0].body).health.stress.value, 32);
 
     const incompleteSnapshot = {
       health: {
         sleep: { durationMinutes: null, score: 45 },
         restingHeartRate: { value: 0 },
         hrv: { value: 0 },
+        stress: { value: 0 },
         recovery: { value: 0 }
       },
       todayActivities: [{ sport: '户外跑步', distanceKm: 6.72, durationSeconds: 0 }],

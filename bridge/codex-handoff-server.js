@@ -90,6 +90,7 @@ function assertSnapshotCompleteness(payload) {
     isInRange(health.sleep?.score, 1, 100),
     isInRange(health.restingHeartRate?.value, 20, 240),
     isInRange(health.hrv?.value, 1, 500),
+    isInRange(health.stress?.value, 1, 100),
     isInRange(health.steps?.value, 1, 200_000),
     isInRange(health.recovery?.value, 1, 100)
   ].filter(Boolean).length;

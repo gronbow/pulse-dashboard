@@ -30,6 +30,9 @@ if (!Array.isArray(fixture?.trends?.sleepScore)) fail('sleepScore trend must be 
 if (!Array.isArray(fixture?.trends?.trainingLoad) || fixture.trends.trainingLoad.length !== 7) {
   fail('trainingLoad trend must contain seven demo points');
 }
+if (!fixture?.health?.stress || fixture.health.stress.value == null) {
+  fail('mock snapshot must include a daily stress value for the secondary health card');
+}
 
 try {
   const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'));

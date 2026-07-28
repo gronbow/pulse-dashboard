@@ -1,6 +1,6 @@
 {
   "name": "pulse-dashboard",
-  "version": "0.5.1",
+  "version": "0.5.4",
   "description": "Codex-hosted COROS MCP health and training dashboard companion.",
   "author": {
     "name": "Pulse contributors"

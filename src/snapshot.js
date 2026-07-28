@@ -94,6 +94,7 @@ function normalizeSnapshot(input, metaOverrides = {}) {
   const rawSleep = rawHealth.sleep && typeof rawHealth.sleep === 'object' ? rawHealth.sleep : {};
   const rawRhr = rawHealth.restingHeartRate && typeof rawHealth.restingHeartRate === 'object' ? rawHealth.restingHeartRate : {};
   const rawHrv = rawHealth.hrv && typeof rawHealth.hrv === 'object' ? rawHealth.hrv : {};
+  const rawStress = rawHealth.stress && typeof rawHealth.stress === 'object' ? rawHealth.stress : {};
   const rawSpo2 = rawHealth.spo2 && typeof rawHealth.spo2 === 'object' ? rawHealth.spo2 : {};
   const rawSteps = rawHealth.steps && typeof rawHealth.steps === 'object' ? rawHealth.steps : {};
   const rawRecovery = rawHealth.recovery && typeof rawHealth.recovery === 'object' ? rawHealth.recovery : {};
@@ -125,6 +126,11 @@ function normalizeSnapshot(input, metaOverrides = {}) {
         unit: 'ms',
         status: text(rawHrv.status, 'unavailable'),
         date: normalizeDateKey(rawHrv.date ?? rawHrv.asOf)
+      },
+      stress: {
+        value: finiteNumber(rawStress.value, null, 1, 100),
+        unit: 'score',
+        date: normalizeDateKey(rawStress.date ?? rawStress.asOf)
       },
       sleep: {
         durationMinutes: finiteNumber(rawSleep.durationMinutes, null, 1, 1_440),

@@ -202,12 +202,17 @@ function render(snapshotData) {
   ));
   setText('#steps-value', health.steps?.value == null ? '—' : Number(health.steps.value).toLocaleString('en-US'));
   setText('#steps-note', datedNote('今日累计', health.steps?.date, asOfKey));
-  setText('#spo2-value', health.spo2?.value == null ? '—' : `${health.spo2.value}%`);
-  setText('#spo2-status', datedNote(
-    health.spo2?.value == null ? '设备未提供' : '最近有效值',
-    health.spo2?.date,
-    asOfKey
-  ));
+  const hasStress = health.stress?.value != null;
+  const secondaryIcon = $('#secondary-health-icon');
+  secondaryIcon.className = `metric-icon ${hasStress ? 'stress-icon' : 'spo2-icon'}`;
+  setText('#secondary-health-icon', hasStress ? '≈' : 'O₂');
+  setText('#secondary-health-label', hasStress ? '日均压力' : '血氧');
+  setText('#secondary-health-value', hasStress
+    ? String(health.stress.value)
+    : health.spo2?.value == null ? '—' : `${health.spo2.value}%`);
+  setText('#secondary-health-note', hasStress
+    ? datedNote('COROS 今日平均 · 0–100', health.stress?.date, asOfKey)
+    : datedNote(health.spo2?.value == null ? '设备未提供' : '最近有效值', health.spo2?.date, asOfKey));
 
   const planDateLabel = plan.date && plan.date !== asOfKey ? shortDateLabel(plan.date) : '';
   const planTitle = plan.title || '未设置训练计划';

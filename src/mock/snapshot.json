@@ -8,6 +8,7 @@
   "health": {
     "restingHeartRate": { "value": 53, "unit": "bpm", "trend": -2, "date": "2026-07-24" },
     "hrv": { "value": 82, "unit": "ms", "status": "above_normal", "date": "2026-07-24" },
+    "stress": { "value": 32, "unit": "score", "date": "2026-07-24" },
     "sleep": { "durationMinutes": 392, "score": 95, "date": "2026-07-24" },
     "spo2": { "value": null, "unit": "%", "status": "unavailable", "date": null },
     "steps": { "value": 9551, "unit": "steps", "date": "2026-07-24" },

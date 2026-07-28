@@ -72,6 +72,8 @@ h1 { margin: 1px 0 0; font-size: 19px; letter-spacing: -.04em; }
 .heart-icon { background: rgba(255, 99, 112, .13); color: #ff8d97; }
 .hrv-icon { background: rgba(97, 214, 194, .13); color: #61d6c2; }
 .recovery-icon { background: rgba(183, 243, 74, .14); color: var(--green); }
+.stress-icon { background: rgba(255, 171, 97, .13); color: var(--orange); }
+.spo2-icon { background: rgba(130, 190, 255, .13); color: #8ec7ff; }
 .metric-card strong { display: block; margin-top: 5px; font-size: 23px; letter-spacing: -.05em; }
 .metric-note { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; }
 .plan-row { display: flex; align-items: center; gap: 11px; margin-top: 13px; }
@@ -113,7 +115,7 @@ body.compact .card { padding: 11px; margin-bottom: 7px; }
 body.compact .insight-text { margin: 8px 0; font-size: 13px; line-height: 1.45; }
 body.compact .metric-card { min-height: 90px; }
 body.compact .training-card, body.compact .plan-card, body.compact .trend-card { display: none; }
-body.compact .steps-card, body.compact .spo2-card { display: none; }
+body.compact .steps-card, body.compact .secondary-health-card { display: none; }
 body.compact .metric-card strong { font-size: 19px; }
 body.light { --bg: #f3f6f2; --panel: rgba(255, 255, 255, .9); --panel-soft: rgba(247, 250, 247, .9); --line: rgba(15, 25, 20, .1); --text: #172019; --muted: #68756d; --shadow: 0 24px 70px rgba(45, 65, 50, .2); }
 body.light .app-shell { background: radial-gradient(circle at 100% 0%, rgba(130, 177, 45, .16), transparent 33%), linear-gradient(155deg, rgba(245, 249, 245, .98), rgba(236, 243, 237, .94)); }

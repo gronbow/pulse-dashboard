@@ -35,6 +35,7 @@ Handoff 默认监听 `http://127.0.0.1:19091`，快照仅落在当前 Windows �
     "sleep": { "durationMinutes": 357, "score": 83, "date": "2026-07-26" },
     "restingHeartRate": { "value": 51, "trend": -1, "date": "2026-07-26" },
     "hrv": { "value": 94, "status": "above_normal", "date": "2026-07-26" },
+    "stress": { "value": 32, "unit": "score", "date": "2026-07-27" },
     "steps": { "value": 40, "date": "2026-07-27" },
     "recovery": { "value": 99, "level": "heavy_training_allowed", "date": "2026-07-27" }
   }
@@ -42,6 +43,8 @@ Handoff 默认监听 `http://127.0.0.1:19091`，快照仅落在当前 Windows �
 ```
 
 看板会对早于快照日期的指标显示其日期，不把旧值冒充成当天新值。训练计划同样可用 `plan.date` 标记课表所属日期。
+
+日均压力优先显示在次要健康卡片中，值域按 COROS 原始分数显示为 0–100，不在桌面端自行诊断或推断；若快照未提供 `health.stress`，该卡片回退显示血氧，保持旧快照兼容。
 
 最近七日负荷使用按日期升序排列的 `trends.trainingLoad`：
 
