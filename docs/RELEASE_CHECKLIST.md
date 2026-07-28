@@ -6,8 +6,10 @@
 - [ ] `npm test` 全部通过。
 - [ ] `npm run audit:production` 通过；只打包的运行时依赖不得有已知高危漏洞。
 - [ ] `npm run test:desktop` 生成真实 Electron 窗口截图，标题栏、圆角卡片和内置滚动条无回归。
-- [ ] `npm run test:tray` 在开发态和解包态均通过；系统托盘人工显示 Pulse 标志而不是空白占位框。
-- [ ] `npm run test:window-icon` 在开发态和解包态均通过；任务栏不再显示 Electron 默认原子图标。
+- [ ] `npm run test:tray` 与 `npm run test:window-icon` 在开发态通过。
+- [ ] 构建后运行 `npm run test:packaged`，确认解包版随包图标、托盘、窗口身份与 `AppUserModelID`。
+- [ ] `npm run test:secondary-health` 断言压力卡片与旧快照血氧回退。
+- [ ] 系统托盘与任务栏人工显示 Pulse 标志，而不是空白占位框或 Electron 默认原子图标。
 - [ ] `npm run pack:win` 成功，解包目录中只含桌面运行所需文件。
 - [ ] `npm run dist:win` 成功生成 Windows x64 测试安装包。
 - [ ] 安装包为测试用途；未完成代码签名时明确提示 Windows 可能显示未知发布者警告。
@@ -22,6 +24,7 @@
 - [ ] Git 未跟踪 `.fit`、训练计划、真实快照、坐标、活动 ID、令牌、日志或本地截图。
 - [ ] 打包白名单只包含 `src`、Codex Handoff、`package.json` 和 `LICENSE`。
 - [ ] 演示快照为合成数据。
+- [ ] README 预览图来自合成演示数据，不包含桌面背景或真实健康信息。
 - [ ] 在实际待推送分支上运行 `npm run audit:history` 并通过。
 
 `npm run audit:history` 仅检查当前 `HEAD` 可到达的提交；`npm run audit:history:all` 检查全部本地引用。当前开发分支的旧提交曾包含个人 Windows 路径和原始活动标识，因此全引用诊断可能预期失败。首次推送 GitHub 前，应从已验证工作树创建干净的公开历史，并保留原开发分支作为本地备份。不要直接推送现有旧历史或任何包含私人记录的引用。
@@ -44,4 +47,5 @@
 
 - [ ] 用户确认仓库名称、可见性和 GitHub 账号。
 - [ ] 用户确认允许创建远程仓库并上传干净公开分支。
+- [ ] CI、Issue 模板、PR 隐私检查和手动 Windows Release Candidate 工作流存在。
 - [ ] 上传后再次检查默认分支、Release 资产和仓库文件，不发布本地健康数据。

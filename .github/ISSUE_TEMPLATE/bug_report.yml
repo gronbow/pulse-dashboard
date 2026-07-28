@@ -1,0 +1,65 @@
+name: Bug report
+description: Report a Pulse desktop, Handoff, or rendering problem without sharing private health data.
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not upload COROS tokens, raw MCP responses, FIT files, coordinates, activity IDs, or screenshots containing real health data.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Desktop window or cards
+        - Windows tray or taskbar
+        - Codex plugin workflow
+        - Local Handoff
+        - Packaging or installation
+        - Documentation
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Pulse version
+      placeholder: "0.5.4"
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Describe the visible behavior using synthetic or redacted information only.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Select ...
+        2. Click ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: "Windows 11 24H2"
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy confirmation
+      options:
+        - label: I removed tokens, personal paths, raw health data, coordinates, internal IDs, and identifying screenshots.
+          required: true

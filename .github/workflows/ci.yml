@@ -28,3 +28,9 @@ jobs:
 
       - name: Run privacy and data-chain tests
         run: npm test
+
+      - name: Audit reachable Git history
+        run: npm run audit:history
+
+      - name: Audit production dependencies
+        run: npm run audit:production
