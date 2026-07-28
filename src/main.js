@@ -4,7 +4,7 @@ const path = require('node:path');
 const http = require('node:http');
 const https = require('node:https');
 const { URL } = require('node:url');
-const { normalizeSnapshot } = require('./snapshot');
+const { normalizeSnapshot, resolveFallbackSnapshot } = require('./snapshot');
 const { createDataSourceAdapter } = require('./adapters/data-source-adapter');
 const { CODEX_HANDOFF_PORT, CODEX_HANDOFF_URL, createCodexHandoffServer } = require('../bridge/codex-handoff-server');
 
@@ -169,6 +169,16 @@ function resolveBridgeUrl(config) {
   return config.bridgeUrl;
 }
 
+function friendlyBridgeError(error, dataSource) {
+  const message = String(error?.message || '').trim();
+  if (/ECONNREFUSED|connect\s+/i.test(message)) {
+    return dataSource === 'codex' ? '本机 Handoff 尚未就绪' : '本地桥接服务尚未启动';
+  }
+  if (/ETIMEDOUT|响应超时/i.test(message)) return '本地桥接服务响应超时';
+  if (/ENOTFOUND|getaddrinfo/i.test(message)) return '无法解析本地桥接地址';
+  return message.slice(0, 240) || '本地桥接暂不可用';
+}
+
 function createHttpBridgeAdapter(config) {
   const bridgeUrl = resolveBridgeUrl(config);
   const provider = config.dataSource === 'codex' ? 'codex-coros-mcp' : 'mcp-bridge';
@@ -195,10 +205,11 @@ async function loadSnapshot() {
   } catch (error) {
     const provider = config.dataSource === 'codex' ? 'codex-coros-mcp' : 'mcp-bridge';
     const cached = readSnapshotCache();
-    if (cached) {
-      return normalizeSnapshot(cached, { source: 'cache', provider, error: error.message });
-    }
-    return normalizeSnapshot(fallback, { source: 'demo', provider, error: error.message });
+    return resolveFallbackSnapshot(cached, {
+      provider,
+      timezone: config.timezone,
+      error: friendlyBridgeError(error, config.dataSource)
+    });
   }
 }
 
@@ -215,13 +226,17 @@ async function testBridge(bridgeUrl, timezone, dataSource) {
   const config = normalizeConfig({ bridgeUrl, timezone, dataSource });
   if (config.dataSource === 'demo') return { ok: false, message: '演示数据不需要测试连接' };
   if (config.dataSource === 'bridge' && !config.bridgeUrl) return { ok: false, message: '请先填写桥接地址' };
-  const adapter = createHttpBridgeAdapter(config);
-  const snapshot = normalizeBridgeSnapshot(await adapter.fetchSnapshot(), { source: 'bridge', provider: adapter.provider });
-  return {
-    ok: true,
-    message: `连接成功：${snapshot.todayActivities.length} 条今日活动数据`,
-    snapshotVersion: snapshot.version
-  };
+  try {
+    const adapter = createHttpBridgeAdapter(config);
+    const snapshot = normalizeBridgeSnapshot(await adapter.fetchSnapshot(), { source: 'bridge', provider: adapter.provider });
+    return {
+      ok: true,
+      message: `连接成功：${snapshot.todayActivities.length} 条今日活动数据`,
+      snapshotVersion: snapshot.version
+    };
+  } catch (error) {
+    throw new Error(friendlyBridgeError(error, config.dataSource));
+  }
 }
 
 async function generateInsight(snapshot) {
@@ -483,7 +498,7 @@ function createTray() {
   tray = new Tray(image);
   const menu = Menu.buildFromTemplate([
     { label: '显示 / 隐藏看板', click: () => mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show() },
-    { label: '立即刷新', click: () => mainWindow.webContents.send('dashboard:refresh') },
+    { label: '读取最新同步', click: () => mainWindow.webContents.send('dashboard:refresh') },
     { label: '打开设置', click: () => { mainWindow.show(); mainWindow.webContents.send('dashboard:open-settings'); } },
     { type: 'separator' },
     { label: '退出', click: () => { quitting = true; app.quit(); } }

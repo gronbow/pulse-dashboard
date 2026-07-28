@@ -20,6 +20,7 @@ COROS MCP → Codex Pulse 插件 → 本机 Codex Handoff → Pulse 桌面看板
 - 近 7 日状态卡片展示逐日短期训练负荷，并同时保留当前短期负荷、长期负荷和比值。
 - 支持演示数据、Codex + COROS MCP 和自定义 HTTP Bridge；含缓存和离线回退。
 - Codex 发布完整快照后，桌面窗口会立即自动读取；不需要再点一次刷新。
+- 只有主动选择“演示数据”时才显示合成数字；Codex/Bridge 尚无真实快照和同源缓存时显示明确空状态。
 - 不完整健康信号、零时长跑步和乱码会在覆盖旧快照前被拒绝。
 - Electron 不保存 COROS 密码、Token 或供应商 API 配置。
 
@@ -85,6 +86,7 @@ npm run dist:win
 - `npm run test:packaged` 会直接启动 `release/win-unpacked/Pulse Dashboard.exe`，复测随包图标、托盘和窗口身份。
 - `npm run test:desktop` 启动真实 Electron 窗口并生成本地截图。
 - `npm run test:secondary-health` 分别断言压力卡片和旧快照血氧回退，不只检查截图是否生成。
+- `npm run test:unavailable` 断言 Codex 首次同步前全部健康值为空，不会回退到 Demo。
 - `npm run test:release` 汇总源码、桌面渲染、已打包程序和生产依赖审计；运行前需先构建解包版。
 - `npm run pack:win` 生成未安装目录；`npm run dist:win` 生成未签名的 Windows 测试安装包。
 - 构建使用严格文件白名单，不会把本地 `.fit`、训练计划、运行缓存或插件开发文件打进桌面安装包。

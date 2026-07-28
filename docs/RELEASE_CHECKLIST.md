@@ -9,6 +9,7 @@
 - [ ] `npm run test:tray` 与 `npm run test:window-icon` 在开发态通过。
 - [ ] 构建后运行 `npm run test:packaged`，确认解包版随包图标、托盘、窗口身份与 `AppUserModelID`。
 - [ ] `npm run test:secondary-health` 断言压力卡片与旧快照血氧回退。
+- [ ] `npm run test:unavailable` 断言无真实快照/同源缓存时不显示任何 Demo 健康数值。
 - [ ] 系统托盘与任务栏人工显示 Pulse 标志，而不是空白占位框或 Electron 默认原子图标。
 - [ ] `npm run pack:win` 成功，解包目录中只含桌面运行所需文件。
 - [ ] `npm run dist:win` 成功生成 Windows x64 测试安装包。
@@ -16,7 +17,7 @@
 
 当前完整 `npm audit` 会报告 electron-builder 构建工具链中的 `brace-expansion` 高危拒绝服务公告；这些包只存在于 `devDependencies`，不会进入 `app.asar`，而生产依赖审计为 0。不要使用会把 electron-builder 强制降级的 `npm audit fix --force`；应等待上游兼容更新后再复核。
 
-当前 Windows 实测空闲 CPU 约为 0%，但 Electron 四进程总工作集约为 386 MB，高于原始 150 MB 目标。测试版发布说明必须披露该差距，不能宣称已达到轻量内存指标。
+最终 v0.5.4 解包版在当前 Windows 机器的 5 秒采样中约占 0.31% 单核（整机约 0.022%），但 Electron 四进程总工作集约为 404 MB，高于原始 150 MB 目标。测试版发布说明必须披露该差距，不能宣称已达到轻量内存指标。
 
 ## 数据与隐私门
 
@@ -37,6 +38,7 @@
 - [ ] 中文运动名称和洞察无乱码。
 - [ ] 插件发布后桌面窗口自动更新。
 - [ ] 缺失或损坏快照被拒绝，旧完整快照仍可读取。
+- [ ] Codex 首次同步前显示等待状态；跨 provider 缓存不混用，Demo 只在主动选择演示源时出现。
 - [ ] 旧日期明确标记为“快照较旧”，不冒充今日数据。
 - [ ] 单项指标使用自己的 `date`；凌晨尚未归档时，最近有效值显示其真实日期。
 - [ ] “近 7 日状态”包含七个逐日训练负荷点，缺失时显示明确占位而不是空白图表。

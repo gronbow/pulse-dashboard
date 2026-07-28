@@ -182,4 +182,54 @@ function normalizeSnapshot(input, metaOverrides = {}) {
   };
 }
 
-module.exports = { SNAPSHOT_VERSION, normalizeDateKey, normalizeSnapshot };
+function createUnavailableSnapshot({
+  provider = 'unknown',
+  timezone = 'Asia/Shanghai',
+  error = ''
+} = {}) {
+  const now = new Date().toISOString();
+  const isCodex = provider === 'codex-coros-mcp';
+  return normalizeSnapshot({
+    meta: {
+      source: 'unavailable',
+      provider,
+      asOf: now,
+      lastUpdated: now,
+      timezone
+    },
+    health: {},
+    todayActivities: [],
+    plan: {},
+    load: {},
+    trends: {},
+    insight: {
+      text: isCodex
+        ? '尚未收到真实 COROS 快照，请先在 Codex 中刷新 Pulse。'
+        : '尚未收到桥接快照，请先检查本地数据源连接。',
+      tags: []
+    }
+  }, {
+    source: 'unavailable',
+    provider,
+    ...(error ? { error } : {})
+  });
+}
+
+function resolveFallbackSnapshot(cached, {
+  provider = 'unknown',
+  timezone = 'Asia/Shanghai',
+  error = ''
+} = {}) {
+  if (cached?.meta?.provider === provider) {
+    return normalizeSnapshot(cached, { source: 'cache', provider, ...(error ? { error } : {}) });
+  }
+  return createUnavailableSnapshot({ provider, timezone, error });
+}
+
+module.exports = {
+  SNAPSHOT_VERSION,
+  createUnavailableSnapshot,
+  normalizeDateKey,
+  normalizeSnapshot,
+  resolveFallbackSnapshot
+};

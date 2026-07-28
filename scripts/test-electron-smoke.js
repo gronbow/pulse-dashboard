@@ -9,10 +9,13 @@ const electronPath = require('electron');
 const outputDirectory = path.join(root, '.runtime-check-v8');
 const liveSnapshotSource = process.env.PULSE_SMOKE_SNAPSHOT_PATH || '';
 const scrollSelector = process.env.PULSE_SMOKE_SCROLL_SELECTOR || '';
+const smokeDataSource = process.env.PULSE_SMOKE_DATA_SOURCE || (liveSnapshotSource ? 'codex' : 'demo');
 const screenshotPath = path.join(
   outputDirectory,
   liveSnapshotSource
     ? scrollSelector ? 'pulse-dashboard-live-trends.png' : 'pulse-dashboard-live.png'
+    : smokeDataSource === 'codex'
+      ? 'pulse-dashboard-awaiting-sync.png'
     : scrollSelector ? 'pulse-dashboard-trends.png' : 'pulse-dashboard-smoke.png'
 );
 const userDataPath = fs.mkdtempSync(path.join(os.tmpdir(), 'pulse-electron-smoke-'));
@@ -24,10 +27,10 @@ const defaultExpectations = JSON.stringify({
 
 fs.mkdirSync(outputDirectory, { recursive: true });
 if (fs.existsSync(screenshotPath)) fs.unlinkSync(screenshotPath);
-if (liveSnapshotSource) {
-  fs.copyFileSync(liveSnapshotSource, handoffPath);
+if (liveSnapshotSource || smokeDataSource !== 'demo') {
+  if (liveSnapshotSource) fs.copyFileSync(liveSnapshotSource, handoffPath);
   fs.writeFileSync(path.join(userDataPath, 'config.json'), JSON.stringify({
-    dataSource: 'codex',
+    dataSource: smokeDataSource,
     bridgeUrl: '',
     refreshIntervalMinutes: 5,
     alwaysOnTop: true,
@@ -50,7 +53,7 @@ const child = spawn(electronPath, [
     ...process.env,
     PULSE_HANDOFF_PATH: handoffPath,
     PULSE_SMOKE_EXPECTATIONS: process.env.PULSE_SMOKE_EXPECTATIONS
-      || (liveSnapshotSource ? '' : defaultExpectations),
+      || (liveSnapshotSource || smokeDataSource !== 'demo' ? '' : defaultExpectations),
     PULSE_HANDOFF_PORT: liveSnapshotSource
       ? (process.env.PULSE_SMOKE_HANDOFF_PORT || '19191')
       : '0'

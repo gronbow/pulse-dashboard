@@ -6,6 +6,7 @@ const fixturePath = path.join(root, 'src', 'mock', 'snapshot.json');
 const packagePath = path.join(root, 'package.json');
 const iconPath = path.join(root, 'build', 'icon.ico');
 const trayPngPath = path.join(root, 'build', 'tray-icon.png');
+const mainSource = fs.readFileSync(path.join(root, 'src', 'main.js'), 'utf8');
 
 function fail(message) {
   console.error(`Validation failed: ${message}`);
@@ -32,6 +33,9 @@ if (!Array.isArray(fixture?.trends?.trainingLoad) || fixture.trends.trainingLoad
 }
 if (!fixture?.health?.stress || fixture.health.stress.value == null) {
   fail('mock snapshot must include a daily stress value for the secondary health card');
+}
+if (!mainSource.includes("label: '读取最新同步'") || mainSource.includes("label: '立即刷新'")) {
+  fail('tray refresh action must clearly describe a local snapshot reread');
 }
 
 try {

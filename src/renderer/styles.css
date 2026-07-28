@@ -40,6 +40,7 @@ h1 { margin: 1px 0 0; font-size: 19px; letter-spacing: -.04em; }
 .source-badge { margin-left: 7px; padding: 4px 7px; border: 1px solid rgba(183, 243, 74, .28); border-radius: 99px; color: var(--green); font-size: 10px; }
 .source-badge.bridge { border-color: rgba(183, 243, 74, .7); background: var(--green-soft); }
 .source-badge.cache { color: var(--orange); border-color: rgba(255, 171, 97, .4); }
+.source-badge.unavailable { color: var(--orange); border-color: rgba(255, 171, 97, .55); background: rgba(255, 171, 97, .08); }
 .source-badge.stale { color: var(--orange); border-color: rgba(255, 171, 97, .55); background: rgba(255, 171, 97, .08); }
 .refresh-button, .text-button { background: transparent; color: var(--green); font-size: 11px; font-weight: 700; }
 .refresh-button:disabled, .text-button:disabled { opacity: .5; cursor: wait; }

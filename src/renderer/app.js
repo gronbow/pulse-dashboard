@@ -136,7 +136,9 @@ function render(snapshotData) {
       ? '数据源已连接'
       : source === 'cache'
         ? meta.provider === 'codex-coros-mcp' ? 'Codex 缓存' : '缓存数据'
-        : '演示数据';
+        : source === 'unavailable'
+          ? '等待首次同步'
+          : '演示数据';
   sourceBadge.className = `source-badge ${source}${isStaleCodex ? ' stale' : ''}`;
   const asOfParts = dateParts(asOf, timezone);
   setText(
@@ -149,9 +151,11 @@ function render(snapshotData) {
   const updatedAt = updatedParts
     ? `${calendarDateKey(lastUpdatedDate, timezone) === todayKey ? '' : `${updatedParts.month}月${updatedParts.day}日 `}${updatedParts.hour}:${updatedParts.minute}`
     : '未知';
-  setText('#last-updated', meta.provider === 'codex-coros-mcp'
-    ? `Codex 快照 · ${updatedAt}`
-    : `最后更新 ${updatedAt}`);
+  setText('#last-updated', source === 'unavailable'
+    ? '尚未同步真实数据'
+    : meta.provider === 'codex-coros-mcp'
+      ? `Codex 快照 · ${updatedAt}`
+      : `最后更新 ${updatedAt}`);
   setText('#insight-button', config?.dataSource === 'codex' ? '读取最新' : '重新生成');
 
   setText('#insight-text', insight.text || '暂无洞察，请点击重新生成。');
@@ -230,7 +234,11 @@ function render(snapshotData) {
   renderBars('#sleep-bars', trends.sleepScore);
 
   let statusMessage = '';
-  if (meta.error) {
+  if (source === 'unavailable') {
+    statusMessage = meta.provider === 'codex-coros-mcp'
+      ? `尚未收到首份完整的 Codex 快照：${meta.error || '本机 Handoff 暂无数据'}。请在 Codex 新任务中刷新 Pulse；在成功发布前不会用演示数字冒充真实数据。`
+      : `实时桥接暂不可用且尚无同源缓存：${meta.error || '本机数据源暂无快照'}。`;
+  } else if (meta.error) {
     statusMessage = meta.provider === 'codex-coros-mcp'
       ? `Codex 快照暂不可用，已保留最近一次完整数据：${meta.error}。在 Codex 中同步成功后，看板会自动读取。`
       : `实时桥接暂不可用，已回退到本地缓存：${meta.error}`;

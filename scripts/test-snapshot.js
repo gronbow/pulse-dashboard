@@ -1,5 +1,10 @@
 const assert = require('node:assert/strict');
-const { SNAPSHOT_VERSION, normalizeSnapshot } = require('../src/snapshot');
+const {
+  SNAPSHOT_VERSION,
+  createUnavailableSnapshot,
+  normalizeSnapshot,
+  resolveFallbackSnapshot
+} = require('../src/snapshot');
 
 const normalized = normalizeSnapshot({
   meta: { source: 'bridge', asOf: 'not-a-date', lastUpdated: null },
@@ -55,4 +60,34 @@ assert.deepEqual(normalized.trends.trainingLoad, [
   { date: '2026-07-27', shortTerm: 71, longTerm: 66, ratio: 1.07, comment: 'Optimized' }
 ]);
 assert.equal(normalized.todayActivities[0].sport, '<script>');
+
+const unavailable = createUnavailableSnapshot({
+  provider: 'codex-coros-mcp',
+  timezone: 'Asia/Shanghai',
+  error: 'handoff unavailable'
+});
+assert.equal(unavailable.meta.source, 'unavailable');
+assert.equal(unavailable.meta.provider, 'codex-coros-mcp');
+assert.equal(unavailable.meta.error, 'handoff unavailable');
+assert.equal(unavailable.health.restingHeartRate.value, null);
+assert.equal(unavailable.health.sleep.durationMinutes, null);
+assert.equal(unavailable.todayActivities.length, 0);
+assert.equal(unavailable.trends.trainingLoad.length, 0);
+assert.match(unavailable.insight.text, /尚未收到真实 COROS 快照/);
+
+const matchingCache = resolveFallbackSnapshot({
+  meta: { provider: 'codex-coros-mcp', timezone: 'Asia/Shanghai' },
+  health: { restingHeartRate: { value: 52 } },
+  todayActivities: []
+}, { provider: 'codex-coros-mcp', error: 'offline' });
+assert.equal(matchingCache.meta.source, 'cache');
+assert.equal(matchingCache.health.restingHeartRate.value, 52);
+
+const mismatchedCache = resolveFallbackSnapshot({
+  meta: { provider: 'mcp-bridge', timezone: 'Asia/Shanghai' },
+  health: { restingHeartRate: { value: 88 } },
+  todayActivities: []
+}, { provider: 'codex-coros-mcp', error: 'offline' });
+assert.equal(mismatchedCache.meta.source, 'unavailable');
+assert.equal(mismatchedCache.health.restingHeartRate.value, null);
 console.log('Snapshot normalization passed: placeholders become unavailable values and COROS aliases are preserved.');
