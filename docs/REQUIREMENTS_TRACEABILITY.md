@@ -52,7 +52,7 @@
 | Windows 10/11 x64 | 已完成/外部验证 | Windows 11 已完成打包、安装、卸载、托盘和任务栏验收；另一台 Windows 测试机仍待验证。 |
 | macOS | 后续 | V0.5 Beta 仅发布 Windows；签名与 DMG 延后。 |
 | DPI 125%/150% | 外部验证 | 使用多尺寸 ICO 和响应式窗口；仍需不同缩放比例人工复测卡片文字。 |
-| GitHub Beta | 外部验证 | v0.5.5 干净公开分支、历史审计、CI、模板、三种简洁小组件合成截图、安装包和源码归档已准备；等待 Draft PR 合并和 Release 验证。 |
+| GitHub Beta | 已完成/外部验证 | v0.5.5 已从干净公开分支合并到 `main`，CI、历史审计、模板、三种简洁小组件合成截图和源码归档均已验证；GitHub Pre-release 已发布，另一台 Windows 设备安装与 DPI 复测仍待完成。 |
 
 ## V0.3/V0.5 后续能力
 
@@ -63,8 +63,4 @@
 
 ## 当前发布阻塞项
 
-代码侧没有已知 P0。首次 GitHub Beta 前仍需：
-
-1. 在新的 Codex 任务中实际触发已重装的 v0.5.5 skill。
-2. 完成 Draft PR 审阅、合并和 v0.5.5 Release 资产验证。
-3. 后续在另一台 Windows 设备完成交互式安装与 DPI 复测。
+代码侧没有已知 P0。GitHub v0.5.5 Beta 已发布；后续只需在新的 Codex 任务中实际触发已安装的 v0.5.5 skill，并在另一台 Windows 设备完成交互式安装与 DPI 复测。
