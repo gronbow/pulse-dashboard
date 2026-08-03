@@ -1,7 +1,7 @@
 {
   "name": "pulse-dashboard",
-  "version": "0.5.4",
-  "description": "Codex-hosted COROS MCP health and training dashboard companion.",
+  "version": "0.5.5",
+  "description": "Codex-hosted Pulse health and training dashboard companion for an already connected COROS MCP service.",
   "author": {
     "name": "Pulse contributors"
   },
@@ -11,13 +11,16 @@
     "coros",
     "training",
     "health",
-    "mcp"
+    "mcp",
+    "desktop",
+    "dashboard",
+    "widget"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Pulse Dashboard",
-    "shortDescription": "Use COROS MCP data with a Codex health coach.",
-    "longDescription": "Pulse turns the COROS MCP connection already available in Codex into a health, training and coaching workflow for the Pulse desktop dashboard.",
+    "shortDescription": "Turn connected COROS MCP data into a Pulse desktop dashboard.",
+    "longDescription": "Pulse uses the COROS MCP service already connected in Codex to create a sanitized health and training snapshot, AI coaching insight, and a local desktop dashboard update. It includes compact 16:9, 4:3, and 21:9 widget layouts; it does not access COROS directly or manage credentials.",
     "developerName": "Pulse contributors",
     "category": "Productivity",
     "capabilities": [
@@ -26,7 +29,8 @@
     "defaultPrompt": [
       "刷新我的 Pulse 今日健康与训练快照。",
       "根据我最新的 COROS 数据，给出明日训练建议。",
-      "复盘我今天的训练，并更新 Pulse 洞察。"
+      "复盘我今天的训练，并更新 Pulse 洞察。",
+      "刷新 Pulse 简洁小组件，显示步数、今日消耗、静息心率和睡眠时长。"
     ],
     "brandColor": "#B7F34A"
   }

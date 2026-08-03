@@ -2,7 +2,7 @@
 
 Pulse 是一个由 Codex 宿主驱动的 Windows 健康与训练桌面看板。Codex 通过用户已经连接并授权的 COROS MCP 读取数据、生成训练洞察，再将经过归一化和脱敏的快照交给 Pulse 在桌面卡片中展示。
 
-> **v0.5.4 Beta**：这是可运行的公开测试版，不是官方 COROS 客户端，不是独立数据监测 App，也不是医疗产品。真实数据更新仍需从 Codex 任务发起；桌面上的“读取同步”只重读本机已有快照。
+> **v0.5.5 Beta**：这是可运行的公开测试版，不是官方 COROS 客户端，不是独立数据监测 App，也不是医疗产品。真实数据更新仍需从 Codex 任务发起；桌面上的“读取同步”只重读本机已有快照。此版本新增 16:9、4:3 和 21:9 简洁小组件布局。
 
 ## 展示效果
 
@@ -27,6 +27,18 @@ Pulse 是一个由 Codex 宿主驱动的 Windows 健康与训练桌面看板。C
   </tr>
 </table>
 
+### 简洁小组件模式
+
+小组件只显示步数、今日已记录活动消耗、静息心率和睡眠时长。21:9 模式将四项指标横向排列；16:9 和 4:3 模式采用两列卡片布局。以下截图使用合成演示数据：
+
+<table>
+  <tr>
+    <td width="33%"><img src="docs/assets/pulse-dashboard-compact-16-9-demo.png" alt="Pulse 16:9 简洁小组件，合成演示数据"><br><sub>16:9</sub></td>
+    <td width="33%"><img src="docs/assets/pulse-dashboard-compact-4-3-demo.png" alt="Pulse 4:3 简洁小组件，合成演示数据"><br><sub>4:3</sub></td>
+    <td width="34%"><img src="docs/assets/pulse-dashboard-compact-21-9-demo.png" alt="Pulse 21:9 简洁小组件，合成演示数据"><br><sub>21:9 超宽版</sub></td>
+  </tr>
+</table>
+
 ## 它能做什么
 
 - 展示睡眠时长与评分、静息心率、睡眠 HRV、恢复状态、步数、日均压力等指标；旧格式快照没有压力字段时兼容显示血氧。
@@ -34,6 +46,7 @@ Pulse 是一个由 Codex 宿主驱动的 Windows 健康与训练桌面看板。C
 - 展示当前短期/长期训练负荷、负荷比值和最近七日逐日趋势。
 - 由 Codex 综合至少两个有效健康信号、训练完成情况和计划，生成简洁的 AI 今日洞察。
 - 提供无边框圆角窗口、拖动、置顶、透明度、深浅主题、紧凑模式、托盘和开机启动选项。
+- 提供简洁小组件模式：以 16:9（360×203）、4:3（360×270）或 21:9（420×180）横版小窗，只显示步数、当天已记录活动消耗、静息心率和睡眠时长。
 - 在 Bridge 暂时不可用时保留同一数据来源的最后一份完整快照；不完整数据、零时长跑步和明显乱码不会覆盖旧快照。
 - 提供独立的合成演示模式，用于检查布局和交互，不连接真实账户。
 
@@ -63,7 +76,7 @@ COROS MCP → Codex Pulse 插件 → 127.0.0.1 Handoff → Pulse 桌面看板
 
 ### 1. 安装 Windows 桌面版
 
-从 [GitHub Releases](https://github.com/gronbow/pulse-dashboard/releases) 下载 `Pulse-Dashboard-Setup-0.5.4-x64.exe`。
+从 [GitHub Releases](https://github.com/gronbow/pulse-dashboard/releases) 下载 `Pulse-Dashboard-Setup-0.5.5-x64.exe`。
 
 要求：
 
@@ -91,9 +104,11 @@ codex plugin add pulse-dashboard@pulse-dashboard
 
 若只想预览 UI，在设置中选择“演示数据”即可；演示模式与真实数据模式有清晰标识。
 
+如果只需要快速查看基础状态，可在设置中打开“简洁小组件模式”，并选择 16:9、4:3 或 21:9 比例。21:9 模式会将四项指标横向排列；16:9 和 4:3 模式会将指标按两列排列，并把数值靠右对齐以减少卡片内留白。小组件中的“今日消耗”是当天已记录活动的卡路里汇总，不代表全天总能量消耗；没有有效活动热量时显示“—”。
+
 ## 当前限制
 
-| 项目 | v0.5.4 Beta 的实际状态 |
+| 项目 | v0.5.5 Beta 的实际状态 |
 | --- | --- |
 | COROS 数据权限 | 由 Codex 中已连接的 COROS MCP 提供；仓库和安装包不提供 COROS 接口或授权。 |
 | 刷新方式 | 新查询必须在 Codex 任务中触发；桌面按钮与定时间隔只重读本机快照。 |
@@ -142,7 +157,7 @@ npm run dist:win
 - `npm run test:release` 还会启动真实 Electron 窗口和已打包 EXE；运行前需先执行 `npm run pack:win`。
 - 构建采用文件白名单，桌面安装包不会包含本地训练文件、缓存或插件开发目录。
 
-发布验收、已知限制和安装包校验记录见 [v0.5.4 发布候选审计](docs/V0.5.4_RELEASE_AUDIT.md)，后续方向见 [Roadmap](docs/ROADMAP.md)。
+发布验收、已知限制和安装包校验记录见 [v0.5.5 发布候选审计](docs/V0.5.5_RELEASE_AUDIT.md)，版本变化见 [v0.5.5 Release Notes](docs/RELEASE_NOTES_V0.5.5_BETA.md)，后续方向见 [Roadmap](docs/ROADMAP.md)。
 
 ## 项目状态与反馈
 

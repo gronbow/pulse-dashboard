@@ -10,9 +10,15 @@ const outputDirectory = path.join(root, '.runtime-check-v8');
 const liveSnapshotSource = process.env.PULSE_SMOKE_SNAPSHOT_PATH || '';
 const scrollSelector = process.env.PULSE_SMOKE_SCROLL_SELECTOR || '';
 const smokeDataSource = process.env.PULSE_SMOKE_DATA_SOURCE || (liveSnapshotSource ? 'codex' : 'demo');
+const compactMode = process.env.PULSE_SMOKE_COMPACT_MODE === '1';
+const compactAspectRatio = ['4:3', '16:9', '21:9'].includes(process.env.PULSE_SMOKE_COMPACT_ASPECT_RATIO)
+  ? process.env.PULSE_SMOKE_COMPACT_ASPECT_RATIO
+  : '16:9';
 const screenshotPath = path.join(
   outputDirectory,
-  liveSnapshotSource
+  compactMode
+    ? 'pulse-dashboard-compact-' + compactAspectRatio.replace(':', '-') + '.png'
+    : liveSnapshotSource
     ? scrollSelector ? 'pulse-dashboard-live-trends.png' : 'pulse-dashboard-live.png'
     : smokeDataSource === 'codex'
       ? 'pulse-dashboard-awaiting-sync.png'
@@ -27,7 +33,7 @@ const defaultExpectations = JSON.stringify({
 
 fs.mkdirSync(outputDirectory, { recursive: true });
 if (fs.existsSync(screenshotPath)) fs.unlinkSync(screenshotPath);
-if (liveSnapshotSource || smokeDataSource !== 'demo') {
+if (liveSnapshotSource || smokeDataSource !== 'demo' || compactMode) {
   if (liveSnapshotSource) fs.copyFileSync(liveSnapshotSource, handoffPath);
   fs.writeFileSync(path.join(userDataPath, 'config.json'), JSON.stringify({
     dataSource: smokeDataSource,
@@ -35,11 +41,19 @@ if (liveSnapshotSource || smokeDataSource !== 'demo') {
     refreshIntervalMinutes: 5,
     alwaysOnTop: true,
     compactMode: false,
+    compactAspectRatio: '16:9',
     theme: 'dark',
     opacity: 96,
     launchAtLogin: false,
     timezone: 'Asia/Shanghai'
   }, null, 2), 'utf8');
+}
+if (compactMode) {
+  const compactConfigPath = path.join(userDataPath, 'config.json');
+  const compactConfig = JSON.parse(fs.readFileSync(compactConfigPath, 'utf8'));
+  compactConfig.compactMode = true;
+  compactConfig.compactAspectRatio = compactAspectRatio;
+  fs.writeFileSync(compactConfigPath, JSON.stringify(compactConfig, null, 2), 'utf8');
 }
 
 const child = spawn(electronPath, [

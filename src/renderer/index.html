@@ -9,6 +9,44 @@
   </head>
   <body>
     <main class="app-shell">
+      <section id="compact-widget" class="compact-widget" aria-label="Pulse 简洁健康小组件">
+        <header class="compact-header drag-region">
+          <div class="compact-brand no-drag">
+            <span class="compact-brand-mark">P</span>
+            <div>
+              <div class="compact-eyebrow">PULSE</div>
+              <div id="compact-date" class="compact-date">今天</div>
+            </div>
+          </div>
+          <div class="compact-actions no-drag">
+            <button id="compact-settings-button" class="icon-button" aria-label="设置">⚙</button>
+            <button id="compact-hide-button" class="icon-button" aria-label="隐藏">—</button>
+          </div>
+        </header>
+        <div class="compact-status">
+          <span id="compact-source-badge" class="compact-source">演示</span>
+          <span id="compact-updated" class="compact-updated">—</span>
+          <button id="compact-refresh-button" class="compact-refresh" aria-label="读取最新同步" title="读取最近一次已同步的快照">↻</button>
+        </div>
+        <div class="compact-metric-grid">
+          <article class="compact-metric compact-steps-card">
+            <div class="compact-metric-label"><span class="compact-metric-icon steps-icon">⌁</span><span class="compact-metric-name">步数</span></div>
+            <div class="compact-metric-data"><strong id="compact-steps">—</strong><span class="compact-unit">今日累计</span></div>
+          </article>
+          <article class="compact-metric compact-calories-card">
+            <div class="compact-metric-label"><span class="compact-metric-icon calories-icon">≈</span><span class="compact-metric-name">今日消耗</span></div>
+            <div class="compact-metric-data"><strong id="compact-calories">—</strong><span class="compact-unit">kcal</span></div>
+          </article>
+          <article class="compact-metric compact-rhr-card">
+            <div class="compact-metric-label"><span class="compact-metric-icon heart-icon">♥</span><span class="compact-metric-name">静息心率</span></div>
+            <div class="compact-metric-data"><strong id="compact-rhr">—</strong><span class="compact-unit">bpm</span></div>
+          </article>
+          <article class="compact-metric compact-sleep-card">
+            <div class="compact-metric-label"><span class="compact-metric-icon sleep-icon">☾</span><span class="compact-metric-name">睡眠时长</span></div>
+            <div class="compact-metric-data"><strong id="compact-sleep">—</strong><span class="compact-unit">昨夜记录</span></div>
+          </article>
+        </div>
+      </section>
       <div class="dashboard-scroll">
       <header class="titlebar drag-region">
         <div class="brand no-drag">
@@ -151,7 +189,11 @@
         <label>窗口透明度 <span id="opacity-label">96%</span><input id="opacity" type="range" min="40" max="100" step="1" /></label>
         <label class="switch-row"><span>始终置顶</span><input id="always-on-top" type="checkbox" /><span class="switch"></span></label>
         <label class="switch-row"><span>开机自启</span><input id="launch-at-login" type="checkbox" /><span class="switch"></span></label>
-        <label class="switch-row"><span>精简模式</span><input id="compact-mode" type="checkbox" /><span class="switch"></span></label>
+        <label class="switch-row"><span>简洁小组件模式</span><input id="compact-mode" type="checkbox" /><span class="switch"></span></label>
+        <p class="muted tiny">仅显示步数、今日消耗、静息心率和睡眠时长，并缩为横版桌面小组件。</p>
+        <label id="compact-aspect-ratio-row">小组件比例
+          <select id="compact-aspect-ratio"><option value="16:9">16:9 横版</option><option value="4:3">4:3 横版</option><option value="21:9">21:9 超宽版</option></select>
+        </label>
         <div class="bridge-test-row"><button id="test-bridge-button" type="button" class="secondary-button">测试桥接</button><span id="bridge-test-status" class="muted tiny"></span></div>
         <div class="dialog-actions"><button value="cancel" class="secondary-button">取消</button><button id="save-settings" value="default" class="primary-button">保存设置</button></div>
       </form>

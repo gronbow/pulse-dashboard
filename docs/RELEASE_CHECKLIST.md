@@ -6,6 +6,7 @@
 - [ ] `npm test` 全部通过。
 - [ ] `npm run audit:production` 通过；只打包的运行时依赖不得有已知高危漏洞。
 - [ ] `npm run test:desktop` 生成真实 Electron 窗口截图，标题栏、圆角卡片和内置滚动条无回归。
+- [ ] `npm run test:compact-mode` 生成 16:9、4:3、21:9 三种简洁小组件截图，检查四项数据的尺寸、对齐和长文本不截断。
 - [ ] `npm run test:tray` 与 `npm run test:window-icon` 在开发态通过。
 - [ ] 构建后运行 `npm run test:packaged`，确认解包版随包图标、托盘、窗口身份与 `AppUserModelID`。
 - [ ] `npm run test:secondary-health` 断言压力卡片与旧快照血氧回退。
@@ -17,7 +18,7 @@
 
 当前完整 `npm audit` 会报告 electron-builder 构建工具链中的 `brace-expansion` 高危拒绝服务公告；这些包只存在于 `devDependencies`，不会进入 `app.asar`，而生产依赖审计为 0。不要使用会把 electron-builder 强制降级的 `npm audit fix --force`；应等待上游兼容更新后再复核。
 
-最终 v0.5.4 解包版在当前 Windows 机器的 5 秒采样中约占 0.31% 单核（整机约 0.022%），但 Electron 四进程总工作集约为 404 MB，高于原始 150 MB 目标。测试版发布说明必须披露该差距，不能宣称已达到轻量内存指标。
+最终 v0.5.5 解包版在当前 Windows 机器的 5 秒采样中约占 0.31% 单核（整机约 0.022%），但 Electron 四进程总工作集约为 404 MB，高于原始 150 MB 目标。测试版发布说明必须披露该差距，不能宣称已达到轻量内存指标。
 
 ## 数据与隐私门
 
