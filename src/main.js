@@ -15,6 +15,7 @@ const DEFAULT_CONFIG = {
   refreshIntervalMinutes: 5,
   alwaysOnTop: true,
   compactMode: false,
+  compactAspectRatio: '16:9',
   theme: 'dark',
   opacity: 96,
   launchAtLogin: false,
@@ -56,6 +57,7 @@ function normalizeConfig(input) {
     refreshIntervalMinutes: [1, 5, 15, 30, 60].includes(refreshIntervalMinutes) ? refreshIntervalMinutes : DEFAULT_CONFIG.refreshIntervalMinutes,
     alwaysOnTop: raw.alwaysOnTop == null ? DEFAULT_CONFIG.alwaysOnTop : Boolean(raw.alwaysOnTop),
     compactMode: raw.compactMode == null ? DEFAULT_CONFIG.compactMode : Boolean(raw.compactMode),
+    compactAspectRatio: ['4:3', '16:9', '21:9'].includes(raw.compactAspectRatio) ? raw.compactAspectRatio : DEFAULT_CONFIG.compactAspectRatio,
     launchAtLogin: raw.launchAtLogin == null ? DEFAULT_CONFIG.launchAtLogin : Boolean(raw.launchAtLogin),
     theme: ['dark', 'light', 'system'].includes(raw.theme) ? raw.theme : DEFAULT_CONFIG.theme,
     opacity: Number.isFinite(opacity) ? Math.max(40, Math.min(100, opacity)) : DEFAULT_CONFIG.opacity,
@@ -215,11 +217,33 @@ async function loadSnapshot() {
 
 function applyWindowConfig(config) {
   if (!mainWindow) return;
+  applyWindowLayout(config);
   mainWindow.setAlwaysOnTop(Boolean(config.alwaysOnTop));
   mainWindow.setOpacity(Math.max(0.1, Math.min(1, Number(config.opacity || 100) / 100)));
   if (app.isPackaged && typeof app.setLoginItemSettings === 'function') {
     app.setLoginItemSettings({ openAtLogin: config.launchAtLogin, args: ['--hidden'] });
   }
+}
+
+function windowSizeForConfig(config) {
+  if (config.compactMode) {
+    const sizes = {
+      '16:9': { width: 360, height: 203 },
+      '4:3': { width: 360, height: 270 },
+      '21:9': { width: 420, height: 180 }
+    };
+    return sizes[config.compactAspectRatio] || sizes['16:9'];
+  }
+  return { width: 430, height: 820 };
+}
+
+function applyWindowLayout(config) {
+  if (!mainWindow) return;
+  const compact = Boolean(config.compactMode);
+  const size = windowSizeForConfig(config);
+  mainWindow.setResizable(!compact);
+  mainWindow.setMinimumSize(compact ? size.width : 360, compact ? size.height : 580);
+  mainWindow.setSize(size.width, size.height);
 }
 
 async function testBridge(bridgeUrl, timezone, dataSource) {
@@ -445,11 +469,12 @@ function createWindow() {
   const startHidden = process.argv.includes('--hidden');
   const smokeOutput = smokeScreenshotPath();
   const windowIcon = loadPulseIcon();
+  const initialSize = windowSizeForConfig(config);
   mainWindow = new BrowserWindow({
-    width: 430,
-    height: 820,
-    minWidth: 360,
-    minHeight: 580,
+    width: initialSize.width,
+    height: initialSize.height,
+    minWidth: config.compactMode ? initialSize.width : 360,
+    minHeight: config.compactMode ? initialSize.height : 580,
     show: false,
     frame: false,
     transparent: true,

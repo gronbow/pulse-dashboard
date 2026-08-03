@@ -19,6 +19,7 @@ body { margin: 0; min-width: 340px; background: transparent; color: var(--text);
 button, input, select { font: inherit; }
 button { border: 0; color: inherit; cursor: pointer; }
 .app-shell { width: 100%; height: 100%; min-height: 0; background: radial-gradient(circle at 100% 0%, rgba(183, 243, 74, 0.1), transparent 33%), linear-gradient(155deg, rgba(10, 13, 14, 0.98), rgba(10, 14, 15, 0.94)); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow); overflow: hidden; }
+body.compact .app-shell { border-radius: 17px; }
 .dashboard-scroll { height: 100%; overflow-y: auto; overflow-anchor: none; padding: 18px 10px 14px 16px; overscroll-behavior: contain; scrollbar-gutter: stable; }
 .dashboard-scroll::-webkit-scrollbar { width: 8px; }
 .dashboard-scroll::-webkit-scrollbar-track { margin: 14px 2px; border-radius: 999px; background: rgba(255,255,255,.045); }
@@ -92,7 +93,44 @@ h1 { margin: 1px 0 0; font-size: 19px; letter-spacing: -.04em; }
 .load-day .bar { flex: none; width: 100%; background: linear-gradient(180deg, rgba(97,214,194,.9), rgba(183,243,74,.62)); }
 .load-day-label { margin-top: 2px; color: #66736d; font-size: 7px; line-height: 8px; text-align: center; }
 .footer-line { padding: 3px 3px 0; color: #6e7873; font-size: 9px; }
-.settings-dialog { width: min(365px, calc(100vw - 30px)); padding: 18px; border: 1px solid rgba(255,255,255,.12); border-radius: 18px; color: var(--text); background: #171d1d; box-shadow: var(--shadow); }
+.compact-widget { display: none; width: 100%; height: 100%; min-height: 0; padding: 8px; flex-direction: column; gap: 5px; overflow: hidden; background: radial-gradient(circle at 100% 0%, rgba(183, 243, 74, .12), transparent 42%), linear-gradient(155deg, rgba(10, 13, 14, .98), rgba(10, 14, 15, .94)); }
+body.compact .dashboard-scroll { display: none; }
+body.compact .compact-widget { display: flex; }
+.compact-header { display: flex; align-items: center; justify-content: space-between; min-height: 26px; }
+.compact-brand { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.compact-brand-mark { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 8px; background: var(--green); color: #11170d; font-size: 17px; font-weight: 800; font-style: italic; }
+.compact-eyebrow { color: var(--green); letter-spacing: .16em; font-size: 8px; font-weight: 800; line-height: 1; }
+.compact-date { margin-top: 4px; color: var(--muted); font-size: 10px; white-space: nowrap; }
+.compact-actions { display: flex; gap: 4px; }
+.compact-actions .icon-button { width: 24px; height: 24px; border-radius: 7px; font-size: 12px; }
+.compact-status { display: flex; align-items: center; min-height: 14px; gap: 6px; color: var(--muted); font-size: 8px; }
+.compact-source { padding: 2px 5px; border: 1px solid rgba(183, 243, 74, .3); border-radius: 99px; color: var(--green); white-space: nowrap; }
+.compact-source.bridge { background: var(--green-soft); border-color: rgba(183, 243, 74, .65); }
+.compact-source.cache, .compact-source.unavailable, .compact-source.stale { color: var(--orange); border-color: rgba(255, 171, 97, .55); background: rgba(255, 171, 97, .08); }
+.compact-updated { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.compact-refresh { width: 22px; height: 22px; padding: 0; border-radius: 7px; background: transparent; color: var(--green); font-size: 16px; line-height: 1; }
+.compact-refresh:disabled { opacity: .5; cursor: wait; }
+.compact-metric-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; flex: 1; min-height: 0; }
+.compact-metric { display: grid; min-width: 0; min-height: 0; padding: 7px 9px; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 1fr; align-items: center; column-gap: 8px; border: 1px solid var(--line); border-radius: 11px; background: rgba(22, 27, 28, .88); }
+.compact-metric-label { display: flex; grid-column: 1; grid-row: 1; align-items: center; gap: 4px; min-width: 0; color: var(--muted); font-size: 9px; white-space: nowrap; }
+.compact-metric-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.compact-metric-icon { display: inline-grid; place-items: center; width: 18px; height: 18px; flex: 0 0 18px; border-radius: 5px; font-size: 10px; }
+.compact-metric .steps-icon { background: rgba(97, 214, 194, .13); color: #61d6c2; }
+.compact-metric .calories-icon { background: rgba(255, 171, 97, .13); color: var(--orange); }
+.compact-metric .heart-icon { background: rgba(255, 99, 112, .13); color: #ff8d97; }
+.compact-metric .sleep-icon { background: rgba(136, 158, 255, .14); color: #9eaeff; }
+.compact-metric-data { display: flex; grid-column: 2; grid-row: 1; min-width: 0; max-width: 100%; flex-direction: column; align-items: flex-end; justify-content: center; gap: 1px; }
+.compact-metric strong { display: block; min-width: 0; max-width: 100%; min-height: 18px; flex: 0 0 18px; overflow: hidden; color: var(--text); font-size: 18px; letter-spacing: -.055em; line-height: 18px; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.compact-unit { color: var(--muted); font-size: 8px; line-height: 9px; text-align: right; white-space: nowrap; }
+body.compact[data-compact-ratio="21:9"] .compact-widget { padding: 7px; gap: 4px; }
+body.compact[data-compact-ratio="21:9"] .compact-metric-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+body.compact[data-compact-ratio="21:9"] .compact-metric { grid-template-columns: 1fr; grid-template-rows: auto auto; padding: 6px 4px; align-content: center; gap: 4px; }
+body.compact[data-compact-ratio="21:9"] .compact-metric-label { grid-column: 1; grid-row: 1; justify-content: center; gap: 4px; font-size: 9px; }
+body.compact[data-compact-ratio="21:9"] .compact-metric-icon { width: 20px; height: 20px; flex-basis: 20px; border-radius: 6px; font-size: 11px; }
+body.compact[data-compact-ratio="21:9"] .compact-metric-data { grid-column: 1; grid-row: 2; align-items: center; gap: 1px; }
+body.compact[data-compact-ratio="21:9"] .compact-metric strong { min-height: 19px; flex: 0 0 19px; font-size: 18px; line-height: 19px; text-align: center; }
+body.compact[data-compact-ratio="21:9"] .compact-unit { font-size: 8px; line-height: 9px; text-align: center; }
+.settings-dialog { width: min(365px, calc(100vw - 30px)); max-height: calc(100vh - 24px); overflow: auto; padding: 18px; border: 1px solid rgba(255,255,255,.12); border-radius: 18px; color: var(--text); background: #171d1d; box-shadow: var(--shadow); }
 .settings-dialog::backdrop { background: rgba(0,0,0,.5); }
 .settings-dialog h2 { margin: 0; font-size: 16px; }
 .settings-dialog label { display: block; margin-top: 16px; color: var(--muted); font-size: 11px; }
@@ -112,14 +150,10 @@ h1 { margin: 1px 0 0; font-size: 19px; letter-spacing: -.04em; }
 .primary-button, .secondary-button { padding: 8px 13px; border-radius: 9px; font-size: 11px; }
 .primary-button { background: var(--green); color: #12170e; font-weight: 800; }
 .secondary-button { background: rgba(255,255,255,.08); color: var(--muted); }
-body.compact .card { padding: 11px; margin-bottom: 7px; }
-body.compact .insight-text { margin: 8px 0; font-size: 13px; line-height: 1.45; }
-body.compact .metric-card { min-height: 90px; }
-body.compact .training-card, body.compact .plan-card, body.compact .trend-card { display: none; }
-body.compact .steps-card, body.compact .secondary-health-card { display: none; }
-body.compact .metric-card strong { font-size: 19px; }
 body.light { --bg: #f3f6f2; --panel: rgba(255, 255, 255, .9); --panel-soft: rgba(247, 250, 247, .9); --line: rgba(15, 25, 20, .1); --text: #172019; --muted: #68756d; --shadow: 0 24px 70px rgba(45, 65, 50, .2); }
 body.light .app-shell { background: radial-gradient(circle at 100% 0%, rgba(130, 177, 45, .16), transparent 33%), linear-gradient(155deg, rgba(245, 249, 245, .98), rgba(236, 243, 237, .94)); }
+body.light .compact-widget { background: radial-gradient(circle at 100% 0%, rgba(130, 177, 45, .16), transparent 42%), linear-gradient(155deg, rgba(245, 249, 245, .98), rgba(236, 243, 237, .94)); }
+body.light .compact-metric { background: rgba(255, 255, 255, .74); }
 body.light .insight-card { background: linear-gradient(135deg, rgba(231, 246, 204, .9), rgba(255, 255, 255, .94)); }
 body.light .settings-dialog { background: #f9fcf9; }
 body.light .settings-dialog input[type=url], body.light .settings-dialog select { color: var(--text); background: #eef4ef; }

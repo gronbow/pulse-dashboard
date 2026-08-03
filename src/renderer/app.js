@@ -80,6 +80,20 @@ function applyTheme() {
   document.body.classList.toggle('light', isLight);
 }
 
+function applyDisplayMode() {
+  document.body.classList.toggle('compact', Boolean(config.compactMode));
+  document.body.dataset.compactRatio = config.compactAspectRatio || '16:9';
+}
+
+function compactSourceLabel(source, meta, isStaleCodex) {
+  if (source === 'unavailable') return '待同步';
+  if (isStaleCodex) return '旧快照';
+  if (source === 'demo') return '演示';
+  if (source === 'cache') return '缓存';
+  if (meta.provider === 'codex-coros-mcp') return '已同步';
+  return '已连接';
+}
+
 function renderBars(selector, values, invert = false) {
   const el = $(selector);
   if (!Array.isArray(values) || !values.length) {
@@ -138,8 +152,11 @@ function render(snapshotData) {
         ? meta.provider === 'codex-coros-mcp' ? 'Codex 缓存' : '缓存数据'
         : source === 'unavailable'
           ? '等待首次同步'
-          : '演示数据';
+        : '演示数据';
   sourceBadge.className = `source-badge ${source}${isStaleCodex ? ' stale' : ''}`;
+  const compactSourceBadge = $('#compact-source-badge');
+  compactSourceBadge.textContent = compactSourceLabel(source, meta, isStaleCodex);
+  compactSourceBadge.className = `compact-source ${source}${isStaleCodex ? ' stale' : ''}`;
   const asOfParts = dateParts(asOf, timezone);
   setText(
     '#today-label',
@@ -156,6 +173,10 @@ function render(snapshotData) {
     : meta.provider === 'codex-coros-mcp'
       ? `Codex 快照 · ${updatedAt}`
       : `最后更新 ${updatedAt}`);
+  setText('#compact-date', asOfParts
+    ? `${isCurrentDay ? '今天' : '数据'} · ${asOfParts.month}月${asOfParts.day}日`
+    : '数据日期未知');
+  setText('#compact-updated', source === 'unavailable' ? '等待同步' : updatedAt);
   setText('#insight-button', config?.dataSource === 'codex' ? '读取最新' : '重新生成');
 
   setText('#insight-text', insight.text || '暂无洞察，请点击重新生成。');
@@ -175,6 +196,11 @@ function render(snapshotData) {
   setText('#total-distance', totalDistance > 0 ? `${totalDistance.toFixed(2)} km` : '—');
   setText('#total-duration', todayActivities.length ? formatDuration(totalSeconds) : '—');
   setText('#total-heart-rate', heartRates.length ? `${Math.round(heartRates.reduce((a, b) => a + b, 0) / heartRates.length)} bpm` : '—');
+  const totalCalories = todayActivities.reduce((sum, activity) => {
+    const calories = Number(activity.calories);
+    return sum + (Number.isFinite(calories) && calories > 0 ? calories : 0);
+  }, 0);
+  setText('#compact-calories', totalCalories > 0 ? Math.round(totalCalories).toLocaleString('en-US') : '—');
 
   setText('#sleep-value', formatMinutes(health.sleep?.durationMinutes || 0));
   setText('#sleep-score', datedNote(`评分 ${health.sleep?.score ?? '—'}`, health.sleep?.date, asOfKey));
@@ -206,6 +232,9 @@ function render(snapshotData) {
   ));
   setText('#steps-value', health.steps?.value == null ? '—' : Number(health.steps.value).toLocaleString('en-US'));
   setText('#steps-note', datedNote('今日累计', health.steps?.date, asOfKey));
+  setText('#compact-steps', health.steps?.value == null ? '—' : Number(health.steps.value).toLocaleString('en-US'));
+  setText('#compact-rhr', health.restingHeartRate?.value == null ? '—' : String(health.restingHeartRate.value));
+  setText('#compact-sleep', formatMinutes(health.sleep?.durationMinutes || 0));
   const hasStress = health.stress?.value != null;
   const secondaryIcon = $('#secondary-health-icon');
   secondaryIcon.className = `metric-icon ${hasStress ? 'stress-icon' : 'spo2-icon'}`;
@@ -251,8 +280,8 @@ function render(snapshotData) {
 }
 
 async function refresh() {
-  const button = $('#refresh-button');
-  button.disabled = true;
+  const buttons = ['#refresh-button', '#compact-refresh-button'].map((selector) => $(selector)).filter(Boolean);
+  buttons.forEach((button) => { button.disabled = true; });
   setText('#refresh-label', '读取中');
   try {
     render(await window.pulseDesktop.getSnapshot());
@@ -260,7 +289,7 @@ async function refresh() {
     $('#error-banner').hidden = false;
     setText('#error-banner', `看板加载失败：${error.message}`);
   } finally {
-    button.disabled = false;
+    buttons.forEach((button) => { button.disabled = false; });
     setText('#refresh-label', '读取同步');
   }
 }
@@ -295,6 +324,10 @@ function updateDataSourceControls() {
   $('#test-bridge-button').textContent = source === 'codex' ? '测试 Codex 连接' : '测试桥接';
 }
 
+function updateDisplayModeControls() {
+  $('#compact-aspect-ratio-row').hidden = !$('#compact-mode').checked;
+}
+
 async function openSettings() {
   $('#data-source').value = config.dataSource || 'demo';
   $('#bridge-url').value = config.bridgeUrl || '';
@@ -302,11 +335,13 @@ async function openSettings() {
   $('#always-on-top').checked = Boolean(config.alwaysOnTop);
   $('#launch-at-login').checked = Boolean(config.launchAtLogin);
   $('#compact-mode').checked = Boolean(config.compactMode);
+  $('#compact-aspect-ratio').value = config.compactAspectRatio || '16:9';
   $('#theme').value = config.theme || 'dark';
   $('#opacity').value = String(config.opacity || 96);
   setText('#opacity-label', `${config.opacity || 96}%`);
   setText('#bridge-test-status', '');
   updateDataSourceControls();
+  updateDisplayModeControls();
   if (!$('#settings-dialog').open) $('#settings-dialog').showModal();
 }
 
@@ -334,10 +369,11 @@ async function saveSettings(event) {
     alwaysOnTop: $('#always-on-top').checked,
     launchAtLogin: $('#launch-at-login').checked,
     compactMode: $('#compact-mode').checked,
+    compactAspectRatio: $('#compact-aspect-ratio').value,
     theme: $('#theme').value,
     opacity: Number($('#opacity').value)
   });
-  document.body.classList.toggle('compact', config.compactMode);
+  applyDisplayMode();
   applyTheme();
   $('#settings-dialog').close();
   armTimer();
@@ -348,16 +384,20 @@ $('#refresh-button').addEventListener('click', refresh);
 $('#insight-button').addEventListener('click', regenerateInsight);
 $('#settings-button').addEventListener('click', openSettings);
 $('#hide-button').addEventListener('click', () => window.pulseDesktop.hide());
+$('#compact-refresh-button').addEventListener('click', refresh);
+$('#compact-settings-button').addEventListener('click', openSettings);
+$('#compact-hide-button').addEventListener('click', () => window.pulseDesktop.hide());
 $('#settings-form').addEventListener('submit', saveSettings);
 $('#test-bridge-button').addEventListener('click', testBridge);
 $('#data-source').addEventListener('change', updateDataSourceControls);
+$('#compact-mode').addEventListener('change', updateDisplayModeControls);
 $('#opacity').addEventListener('input', (event) => setText('#opacity-label', `${event.target.value}%`));
 window.pulseDesktop.onRefresh(refresh);
 window.pulseDesktop.onOpenSettings(openSettings);
 
 (async function init() {
   config = await window.pulseDesktop.getConfig();
-  document.body.classList.toggle('compact', config.compactMode);
+  applyDisplayMode();
   applyTheme();
   armTimer();
   await refresh();

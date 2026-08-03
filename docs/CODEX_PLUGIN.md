@@ -2,7 +2,7 @@
 
 ## 作用
 
-`pulse-dashboard` 插件指导 Codex 使用当前环境已经连接并授权的 COROS MCP，生成标准化的 Pulse 健康与训练快照、每日建议和训练复盘，并把同一份快照发布给本机 Pulse Desktop。
+`pulse-dashboard` 插件指导 Codex 使用当前环境已经连接并授权的 COROS MCP，生成标准化的 Pulse 健康与训练快照、每日建议和训练复盘，并把同一份快照发布给本机 Pulse Desktop。v0.5.5 同时为桌面看板提供 16:9、4:3 和 21:9 简洁小组件布局。
 
 插件不提供 COROS 登录、OAuth、Token 或供应商 API，也不保存原始 MCP 响应。桌面应用无法继承 Codex 任务的 MCP 权限，因此每次新的 COROS 查询都必须由 Codex 任务发起。
 
@@ -36,6 +36,9 @@ codex plugin add pulse-dashboard@pulse-dashboard
 
 - `根据我最新的 COROS 数据，给出明日训练建议。`
 - `复盘我今天的训练，并更新 Pulse 洞察。`
+- `刷新 Pulse 简洁小组件，显示步数、今日消耗、静息心率和睡眠时长。`
+
+简洁小组件中的“今日消耗”是当天已记录活动的 `calories` 合计，不代表全天总能量消耗；缺失值保持为 `—`，不会用 0 或演示数据补齐。
 
 ## 数据范围与质量门
 
