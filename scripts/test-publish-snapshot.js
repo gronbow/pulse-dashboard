@@ -4,6 +4,11 @@ const fs = require('node:fs');
 const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
+const {
+  HANDOFF_PROTOCOL_VERSION,
+  HANDOFF_SERVICE,
+  createIdentityProof
+} = require('./handoff-auth');
 
 const publisherPath = path.join(__dirname, 'publish-snapshot.js');
 
@@ -29,11 +34,25 @@ async function main() {
   const validPath = path.join(tempDir, 'valid.json');
   const invalidPath = path.join(tempDir, 'invalid.json');
   const received = [];
+  const token = 'C'.repeat(43);
+  let validIdentity = true;
   const server = http.createServer((request, response) => {
+    const requestUrl = new URL(request.url, 'http://127.0.0.1');
+    if (request.method === 'GET' && requestUrl.pathname === '/api/health') {
+      const challenge = requestUrl.searchParams.get('challenge');
+      response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      response.end(JSON.stringify({
+        service: HANDOFF_SERVICE,
+        version: HANDOFF_PROTOCOL_VERSION,
+        proof: validIdentity ? createIdentityProof(token, challenge) : 'invalid'
+      }));
+      return;
+    }
     const chunks = [];
     request.on('data', (chunk) => chunks.push(chunk));
     request.on('end', () => {
       received.push({
+        authorization: request.headers.authorization,
         contentType: request.headers['content-type'],
         body: Buffer.concat(chunks).toString('utf8')
       });
@@ -48,7 +67,10 @@ async function main() {
       server.listen(0, '127.0.0.1', resolve);
     });
     const port = server.address().port;
-    const environment = { PULSE_HANDOFF_URL: `http://127.0.0.1:${port}/api/snapshot` };
+    const environment = {
+      PULSE_HANDOFF_URL: `http://127.0.0.1:${port}/api/snapshot`,
+      PULSE_HANDOFF_TOKEN: token
+    };
 
     const validSnapshot = {
       meta: { date: '2026-07-27', timezone: 'Asia/Shanghai' },
@@ -73,6 +95,7 @@ async function main() {
     assert.equal(validResult.code, 0, validResult.stderr);
     assert.match(validResult.stdout, /published/);
     assert.equal(received.length, 1);
+    assert.equal(received[0].authorization, `Bearer ${token}`);
     assert.equal(received[0].contentType, 'application/json; charset=utf-8');
     assert.equal(JSON.parse(received[0].body).insight.text, validSnapshot.insight.text);
     assert.equal(JSON.parse(received[0].body).health.stress.value, 32);
@@ -95,7 +118,13 @@ async function main() {
     assert.match(invalidResult.stderr, /at least two valid health signals/);
     assert.equal(received.length, 1, 'incomplete snapshot must be rejected before any HTTP request');
 
-    console.log('Pulse publisher passed: UTF-8 snapshot accepted; incomplete snapshot blocked locally.');
+    validIdentity = false;
+    const spoofedResult = await runPublisher(['--file', validPath], environment);
+    assert.equal(spoofedResult.code, 1);
+    assert.match(spoofedResult.stderr, /identity check failed/);
+    assert.equal(received.length, 1, 'identity failure must block publication before the snapshot POST');
+
+    console.log('Pulse publisher passed: authenticated identity verified; UTF-8 and completeness gates remain local.');
   } finally {
     await new Promise((resolve) => server.close(resolve));
     for (const filePath of [validPath, invalidPath]) {

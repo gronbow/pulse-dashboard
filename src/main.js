@@ -1,18 +1,33 @@
-const { app, BrowserWindow, ipcMain, Menu, nativeImage, shell, Tray } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, safeStorage, Tray } = require('electron');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const http = require('node:http');
 const https = require('node:https');
-const { URL } = require('node:url');
+const { pathToFileURL, URL } = require('node:url');
 const { normalizeSnapshot, resolveFallbackSnapshot } = require('./snapshot');
 const { createDataSourceAdapter } = require('./adapters/data-source-adapter');
 const { CODEX_HANDOFF_PORT, CODEX_HANDOFF_URL, createCodexHandoffServer } = require('../bridge/codex-handoff-server');
+const {
+  bearerHeaders,
+  createIdentityChallenge,
+  readHandoffToken,
+  resolveHandoffAuthPath,
+  verifyHandoffIdentity
+} = require('../scripts/handoff-auth');
+const {
+  createSecureSnapshotCodec,
+  isSnapshotExpired,
+  normalizeRetentionDays,
+  snapshotTimestamp
+} = require('./secure-snapshot-store');
 
 const WINDOWS_APP_ID = 'app.pulse.dashboard';
 const DEFAULT_CONFIG = {
   dataSource: 'demo',
   bridgeUrl: '',
   refreshIntervalMinutes: 5,
+  dataRetentionDays: 7,
   alwaysOnTop: true,
   compactMode: false,
   compactAspectRatio: '16:9',
@@ -34,7 +49,16 @@ function configPath() {
 }
 
 function snapshotCachePath() {
-  return path.join(app.getPath('userData'), 'snapshot-cache.json');
+  return path.join(app.getPath('userData'), 'snapshot-store.v2.json');
+}
+
+function legacySnapshotPaths() {
+  const candidates = [path.join(app.getPath('userData'), 'snapshot-cache.json')];
+  if (app.isPackaged && !smokeScreenshotPath()) {
+    const base = process.env.LOCALAPPDATA || process.env.APPDATA || app.getPath('userData');
+    candidates.push(path.join(base, 'PulseDashboard', 'codex-handoff-snapshot.json'));
+  }
+  return [...new Set(candidates)].filter((candidate) => candidate !== snapshotCachePath());
 }
 
 function readConfig() {
@@ -49,12 +73,14 @@ function normalizeConfig(input) {
   const raw = input && typeof input === 'object' ? input : {};
   const refreshIntervalMinutes = Number(raw.refreshIntervalMinutes);
   const opacity = Number(raw.opacity);
+  const dataRetentionDays = normalizeRetentionDays(raw.dataRetentionDays);
   return {
     ...DEFAULT_CONFIG,
     ...raw,
     dataSource: ['demo', 'bridge', 'codex'].includes(raw.dataSource) ? raw.dataSource : DEFAULT_CONFIG.dataSource,
     bridgeUrl: String(raw.bridgeUrl || '').trim().replace(/\/$/, ''),
     refreshIntervalMinutes: [1, 5, 15, 30, 60].includes(refreshIntervalMinutes) ? refreshIntervalMinutes : DEFAULT_CONFIG.refreshIntervalMinutes,
+    dataRetentionDays,
     alwaysOnTop: raw.alwaysOnTop == null ? DEFAULT_CONFIG.alwaysOnTop : Boolean(raw.alwaysOnTop),
     compactMode: raw.compactMode == null ? DEFAULT_CONFIG.compactMode : Boolean(raw.compactMode),
     compactAspectRatio: ['4:3', '16:9', '21:9'].includes(raw.compactAspectRatio) ? raw.compactAspectRatio : DEFAULT_CONFIG.compactAspectRatio,
@@ -74,15 +100,54 @@ function writeConfig(next) {
 
 function readSnapshotCache() {
   try {
-    return JSON.parse(fs.readFileSync(snapshotCachePath(), 'utf8'));
+    const snapshot = createSecureSnapshotCodec(safeStorage).decode(fs.readFileSync(snapshotCachePath(), 'utf8'));
+    if (isSnapshotExpired(snapshot, readConfig().dataRetentionDays)) {
+      fs.unlinkSync(snapshotCachePath());
+      return null;
+    }
+    return snapshot;
   } catch {
     return null;
   }
 }
 
 function writeSnapshotCache(snapshot) {
-  fs.mkdirSync(path.dirname(snapshotCachePath()), { recursive: true });
-  fs.writeFileSync(snapshotCachePath(), JSON.stringify(snapshot, null, 2), 'utf8');
+  const filePath = snapshotCachePath();
+  const directory = path.dirname(filePath);
+  fs.mkdirSync(directory, { recursive: true });
+  const temporaryPath = path.join(directory, `.${path.basename(filePath)}.${process.pid}.${crypto.randomUUID()}.tmp`);
+  try {
+    fs.writeFileSync(temporaryPath, createSecureSnapshotCodec(safeStorage).encode(snapshot), 'utf8');
+    fs.renameSync(temporaryPath, filePath);
+  } finally {
+    if (fs.existsSync(temporaryPath)) fs.unlinkSync(temporaryPath);
+  }
+}
+
+function removeFileIfPresent(filePath) {
+  try { fs.unlinkSync(filePath); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+}
+
+function migrateLegacySnapshotStore() {
+  if (fs.existsSync(snapshotCachePath())) return;
+  const candidates = [];
+  for (const filePath of legacySnapshotPaths()) {
+    try {
+      const snapshot = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      const timestamp = snapshotTimestamp(snapshot);
+      if (timestamp != null) candidates.push({ filePath, snapshot, timestamp });
+    } catch {
+      // Invalid legacy files are not migrated or deleted automatically.
+    }
+  }
+  candidates.sort((left, right) => right.timestamp - left.timestamp);
+  const newest = candidates[0];
+  if (!newest) return;
+  if (!isSnapshotExpired(newest.snapshot, readConfig().dataRetentionDays)) {
+    writeSnapshotCache(newest.snapshot);
+    if (!readSnapshotCache()) throw new Error('Pulse could not verify the migrated secure snapshot store');
+  }
+  for (const candidate of candidates) removeFileIfPresent(candidate.filePath);
 }
 
 function requestJson(target, options = {}) {
@@ -178,18 +243,49 @@ function friendlyBridgeError(error, dataSource) {
   }
   if (/ETIMEDOUT|响应超时/i.test(message)) return '本地桥接服务响应超时';
   if (/ENOTFOUND|getaddrinfo/i.test(message)) return '无法解析本地桥接地址';
+  if (/identity check|身份校验/i.test(message)) return 'Handoff 身份校验失败，固定端口可能被其他进程占用';
+  if (/authentication|HTTP 401/i.test(message)) return 'Handoff 身份令牌无效，请重启 Pulse 后重试';
   return message.slice(0, 240) || '本地桥接暂不可用';
+}
+
+async function verifyCodexHandoff(bridgeUrl, token) {
+  const challenge = createIdentityChallenge();
+  const identity = await requestJson(`${bridgeUrl}/api/health?challenge=${challenge}`);
+  if (!verifyHandoffIdentity(identity, token, challenge)) {
+    throw new Error('Pulse handoff identity check failed');
+  }
+  return requestJson(`${bridgeUrl}/api/health?challenge=${challenge}`, {
+    headers: bearerHeaders(token)
+  });
 }
 
 function createHttpBridgeAdapter(config) {
   const bridgeUrl = resolveBridgeUrl(config);
   const provider = config.dataSource === 'codex' ? 'codex-coros-mcp' : 'mcp-bridge';
+  const codexToken = config.dataSource === 'codex'
+    ? (codexHandoffServer?.handoffToken || readHandoffToken())
+    : '';
   return createDataSourceAdapter({
     id: config.dataSource === 'codex' ? 'codex-handoff' : 'http-bridge',
     label: config.dataSource === 'codex' ? 'Codex Handoff' : 'HTTP Bridge',
     provider,
-    fetchSnapshot: () => requestJson(`${bridgeUrl}/api/snapshot?timezone=${encodeURIComponent(config.timezone)}`),
-    generateInsight: (snapshot) => requestJson(`${bridgeUrl}/api/insight`, { method: 'POST', body: { snapshot } })
+    fetchSnapshot: async () => {
+      if (config.dataSource === 'codex') {
+        const health = await verifyCodexHandoff(bridgeUrl, codexToken);
+        if (!health.ready) throw new Error(health.message || '本机 Handoff 尚未就绪');
+      }
+      return requestJson(`${bridgeUrl}/api/snapshot?timezone=${encodeURIComponent(config.timezone)}`, {
+        headers: config.dataSource === 'codex' ? bearerHeaders(codexToken) : undefined
+      });
+    },
+    generateInsight: async (snapshot) => {
+      if (config.dataSource === 'codex') await verifyCodexHandoff(bridgeUrl, codexToken);
+      return requestJson(`${bridgeUrl}/api/insight`, {
+        method: 'POST',
+        headers: config.dataSource === 'codex' ? bearerHeaders(codexToken) : undefined,
+        body: { snapshot }
+      });
+    }
   });
 }
 
@@ -202,7 +298,7 @@ async function loadSnapshot() {
   try {
     const adapter = createHttpBridgeAdapter(config);
     const snapshot = normalizeBridgeSnapshot(await adapter.fetchSnapshot(), { source: 'bridge', provider: adapter.provider });
-    writeSnapshotCache(snapshot);
+    if (config.dataSource !== 'codex') writeSnapshotCache(snapshot);
     return snapshot;
   } catch (error) {
     const provider = config.dataSource === 'codex' ? 'codex-coros-mcp' : 'mcp-bridge';
@@ -595,7 +691,15 @@ function runWindowIconCheck(outputPath) {
 
 function startCodexHandoffBridge() {
   if (codexHandoffServer) return;
-  codexHandoffServer = createCodexHandoffServer();
+  migrateLegacySnapshotStore();
+  const codec = createSecureSnapshotCodec(safeStorage);
+  codexHandoffServer = createCodexHandoffServer({
+    filePath: snapshotCachePath(),
+    authPath: resolveHandoffAuthPath(),
+    encodeSnapshot: codec.encode,
+    decodeSnapshot: codec.decode,
+    getRetentionDays: () => readConfig().dataRetentionDays
+  });
   codexHandoffServer.on('snapshot-updated', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('dashboard:refresh');
@@ -640,7 +744,12 @@ if (!hasSingleInstanceLock) {
       }
       return;
     }
-    startCodexHandoffBridge();
+    try {
+      startCodexHandoffBridge();
+    } catch (error) {
+      codexHandoffServer = null;
+      console.error(`Pulse secure Handoff could not start: ${error.message}`);
+    }
     createWindow();
     createTray();
     app.on('activate', () => mainWindow?.show());
@@ -653,17 +762,50 @@ app.on('before-quit', () => {
   codexHandoffServer?.close();
 });
 
-ipcMain.handle('app:get-config', () => readConfig());
-ipcMain.handle('app:update-config', (_event, next) => {
+function assertTrustedRenderer(event) {
+  const actual = event.senderFrame?.url || event.sender?.getURL?.() || '';
+  const expected = pathToFileURL(path.join(__dirname, 'renderer', 'index.html')).href;
+  if (actual !== expected) throw new Error('Untrusted renderer IPC request blocked');
+}
+
+async function clearLocalHealthData() {
+  const result = await dialog.showMessageBox(mainWindow, {
+    type: 'warning',
+    buttons: ['取消', '清除数据'],
+    defaultId: 0,
+    cancelId: 0,
+    noLink: true,
+    title: '清除本机健康数据',
+    message: '确定清除 Pulse 在本机保存的健康与训练快照吗？',
+    detail: '该操作不会删除 COROS 或 Codex 中的数据，也不会重置 Handoff 身份令牌。'
+  });
+  if (result.response !== 1) return { cleared: false };
+  codexHandoffServer?.clearSnapshot();
+  removeFileIfPresent(snapshotCachePath());
+  for (const filePath of legacySnapshotPaths()) removeFileIfPresent(filePath);
+  mainWindow?.webContents.send('dashboard:refresh');
+  return { cleared: true };
+}
+
+ipcMain.handle('app:get-config', (event) => { assertTrustedRenderer(event); return readConfig(); });
+ipcMain.handle('app:update-config', (event, next) => {
+  assertTrustedRenderer(event);
   const config = writeConfig(next || {});
   applyWindowConfig(config);
   return config;
 });
-ipcMain.handle('app:get-snapshot', () => loadSnapshot());
-ipcMain.handle('app:test-bridge', (_event, bridgeUrl, timezone, dataSource) => testBridge(bridgeUrl, timezone, dataSource));
-ipcMain.handle('app:generate-insight', (_event, snapshot) => generateInsight(snapshot));
-ipcMain.handle('app:open-external', (_event, url) => {
-  if (typeof url === 'string' && /^https?:\/\//i.test(url)) shell.openExternal(url);
+ipcMain.handle('app:get-snapshot', (event) => { assertTrustedRenderer(event); return loadSnapshot(); });
+ipcMain.handle('app:test-bridge', (event, bridgeUrl, timezone, dataSource) => {
+  assertTrustedRenderer(event);
+  return testBridge(bridgeUrl, timezone, dataSource);
 });
-ipcMain.on('app:hide', () => mainWindow?.hide());
-ipcMain.on('app:quit', () => { quitting = true; app.quit(); });
+ipcMain.handle('app:generate-insight', (event, snapshot) => {
+  assertTrustedRenderer(event);
+  return generateInsight(snapshot);
+});
+ipcMain.handle('app:clear-local-data', (event) => {
+  assertTrustedRenderer(event);
+  return clearLocalHealthData();
+});
+ipcMain.on('app:hide', (event) => { assertTrustedRenderer(event); mainWindow?.hide(); });
+ipcMain.on('app:quit', (event) => { assertTrustedRenderer(event); quitting = true; app.quit(); });

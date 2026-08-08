@@ -12,6 +12,8 @@
 - [ ] 构建后运行 `npm run test:packaged`，确认解包版随包图标、托盘、窗口身份与 `AppUserModelID`。
 - [ ] `npm run test:secondary-health` 断言压力卡片与旧快照血氧回退。
 - [ ] `npm run test:unavailable` 断言无真实快照/同源缓存时不显示任何 Demo 健康数值。
+- [ ] `npm run test:local-security` 断言 Handoff 身份证明、随机令牌、加密存储信封与留存策略。
+- [ ] `npm run test:codex-handoff` 断言未认证请求、错误令牌和固定端口身份不匹配均被拒绝，且清除后不再返回快照。
 - [ ] 系统托盘与任务栏人工显示 Pulse 标志，而不是空白占位框或 Electron 默认原子图标。
 - [ ] `npm run pack:win` 成功，解包目录中只含桌面运行所需文件。
 - [ ] `npm run dist:win` 成功生成 Windows x64 测试安装包。
@@ -25,7 +27,8 @@
 
 - [ ] `npm run audit:public` 通过。
 - [ ] Git 未跟踪 `.fit`、训练计划、真实快照、坐标、活动 ID、令牌、日志或本地截图。
-- [ ] 打包白名单只包含 `src`、Codex Handoff、`package.json` 和 `LICENSE`。
+- [ ] 打包白名单只包含 `src`、Codex Handoff、最小 Handoff 身份辅助脚本、`package.json` 和 `LICENSE`。
+- [ ] 安装版快照使用 Windows 系统加密能力保存，不存在明文回退；设置中的 1 / 7 / 30 天留存与一键清除经过验证。
 - [ ] 演示快照为合成数据。
 - [ ] README 预览图来自合成演示数据，不包含桌面背景或真实健康信息。
 - [ ] 在实际待推送分支上运行 `npm run audit:history` 并通过。

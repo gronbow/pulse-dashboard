@@ -21,6 +21,7 @@
     "files": [
       "src/**/*",
       "bridge/codex-handoff-server.js",
+      "scripts/handoff-auth.js",
       "package.json",
       "LICENSE"
     ],
@@ -64,11 +65,12 @@
     "audit:production": "npm audit --omit=dev --audit-level=high",
     "bridge:demo": "node bridge/mock-server.js",
     "bridge:codex": "node bridge/codex-handoff-server.js",
-    "test": "npm run check && npm run audit:public && npm run test:public-plugin && npm run test:history-audit-cli && npm run test:snapshot && npm run test:adapter && npm run test:bridge && npm run test:codex-handoff && npm run test:publisher && npm run test:tray && npm run test:window-icon",
+    "test": "npm run check && npm run audit:public && npm run test:public-plugin && npm run test:history-audit-cli && npm run test:snapshot && npm run test:adapter && npm run test:bridge && npm run test:local-security && npm run test:codex-handoff && npm run test:publisher && npm run test:tray && npm run test:window-icon",
     "test:bridge": "node scripts/test-bridge.js",
     "test:snapshot": "node scripts/test-snapshot.js",
     "test:adapter": "node scripts/test-adapter.js",
     "test:codex-handoff": "node scripts/test-codex-handoff.js",
+    "test:local-security": "node scripts/test-local-security.js",
     "test:publisher": "node scripts/test-publish-snapshot.js",
     "test:public-plugin": "node scripts/test-public-plugin.js",
     "test:tray": "node scripts/test-tray-icon.js",

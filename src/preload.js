@@ -6,7 +6,7 @@ contextBridge.exposeInMainWorld('pulseDesktop', {
   getSnapshot: () => ipcRenderer.invoke('app:get-snapshot'),
   testBridge: (bridgeUrl, timezone, dataSource) => ipcRenderer.invoke('app:test-bridge', bridgeUrl, timezone, dataSource),
   generateInsight: (snapshot) => ipcRenderer.invoke('app:generate-insight', snapshot),
-  openExternal: (url) => ipcRenderer.invoke('app:open-external', url),
+  clearLocalData: () => ipcRenderer.invoke('app:clear-local-data'),
   hide: () => ipcRenderer.send('app:hide'),
   quit: () => ipcRenderer.send('app:quit'),
   onRefresh: (handler) => ipcRenderer.on('dashboard:refresh', handler),

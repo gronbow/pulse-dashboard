@@ -1,6 +1,12 @@
 const fs = require('node:fs');
 const http = require('node:http');
 const { URL } = require('node:url');
+const {
+  bearerHeaders,
+  createIdentityChallenge,
+  readHandoffToken,
+  verifyHandoffIdentity
+} = require('./handoff-auth');
 
 const DEFAULT_URL = 'http://127.0.0.1:19091/api/snapshot';
 const MAX_BYTES = 2_000_000;
@@ -90,6 +96,51 @@ function responseDetail(body) {
   return '';
 }
 
+function requestHandoff(target, options = {}) {
+  return new Promise((resolve, reject) => {
+    const request = http.request(target, {
+      method: options.method || 'GET',
+      headers: options.headers || {},
+      timeout: 12_000
+    }, (result) => {
+      let responseBody = '';
+      let responseBytes = 0;
+      result.setEncoding('utf8');
+      result.on('data', (chunk) => {
+        responseBytes += Buffer.byteLength(chunk, 'utf8');
+        if (responseBytes > MAX_BYTES) {
+          result.destroy(new Error('Pulse handoff response exceeds 2 MB'));
+          return;
+        }
+        responseBody += chunk;
+      });
+      result.on('end', () => resolve({ status: result.statusCode, body: responseBody }));
+    });
+    request.on('timeout', () => request.destroy(new Error('Pulse handoff timed out')));
+    request.on('error', reject);
+    request.end(options.body || undefined);
+  });
+}
+
+async function verifyHandoff(target, token) {
+  const challenge = createIdentityChallenge();
+  const healthUrl = new URL('/api/health', target);
+  healthUrl.searchParams.set('challenge', challenge);
+  const response = await requestHandoff(healthUrl);
+  if (response.status !== 200) {
+    throw new Error(`Pulse handoff identity check returned HTTP ${response.status}`);
+  }
+  let identity;
+  try {
+    identity = JSON.parse(response.body);
+  } catch {
+    throw new Error('Pulse handoff identity response is not JSON');
+  }
+  if (!verifyHandoffIdentity(identity, token, challenge)) {
+    throw new Error('Pulse handoff identity check failed; another process may be using the configured port');
+  }
+}
+
 async function publish() {
   const input = readInput();
   const raw = input.charCodeAt(0) === 0xFEFF ? input.slice(1) : input;
@@ -99,24 +150,17 @@ async function publish() {
   if (target.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(target.hostname)) {
     throw new Error('Pulse handoff only permits a local 127.0.0.1 or localhost HTTP endpoint');
   }
+  const token = readHandoffToken();
+  await verifyHandoff(target, token);
   const body = JSON.stringify(snapshot);
-  const response = await new Promise((resolve, reject) => {
-    const request = http.request(target, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Content-Length': Buffer.byteLength(body, 'utf8')
-      },
-      timeout: 12_000
-    }, (result) => {
-      let body = '';
-      result.setEncoding('utf8');
-      result.on('data', (chunk) => { body += chunk; });
-      result.on('end', () => resolve({ status: result.statusCode, body }));
-    });
-    request.on('timeout', () => request.destroy(new Error('Pulse handoff timed out')));
-    request.on('error', reject);
-    request.end(body);
+  const response = await requestHandoff(target, {
+    method: 'POST',
+    headers: {
+      ...bearerHeaders(token),
+      'Content-Type': 'application/json; charset=utf-8',
+      'Content-Length': Buffer.byteLength(body, 'utf8')
+    },
+    body
   });
   if (response.status < 200 || response.status >= 300) {
     throw new Error(`Pulse handoff returned HTTP ${response.status}${responseDetail(response.body)}`);
@@ -136,5 +180,6 @@ module.exports = {
   assertSnapshotCompleteness,
   assertTextEncoding,
   hasEncodingCorruption,
-  publish
+  publish,
+  verifyHandoff
 };
