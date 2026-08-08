@@ -146,6 +146,7 @@ npm start
 ```powershell
 npm test
 npm run audit:history
+npm run audit:dependencies
 npm run audit:production
 npm run test:desktop
 npm run test:release
@@ -154,6 +155,7 @@ npm run dist:win
 
 - `npm test` 覆盖快照归一化、Bridge/Handoff、UTF-8、发布质量门、公开插件包、隐私审计和 Windows 图标。
 - `npm run audit:history` 扫描当前待发布分支可达历史，避免旧提交泄露个人路径、活动 ID 或凭据形态内容。
+- `npm run audit:dependencies` 检查开发与运行时的完整依赖树；`audit:production` 单独复核实际打包运行时。
 - `npm run test:release` 还会启动真实 Electron 窗口和已打包 EXE；运行前需先执行 `npm run pack:win`。
 - 构建采用文件白名单，桌面安装包不会包含本地训练文件、缓存或插件开发目录。
 

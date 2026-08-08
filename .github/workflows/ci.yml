@@ -32,5 +32,8 @@ jobs:
       - name: Audit reachable Git history
         run: npm run audit:history
 
-      - name: Audit production dependencies
+      - name: Audit complete dependency graph
+        run: npm run audit:dependencies
+
+      - name: Audit packaged runtime dependencies
         run: npm run audit:production

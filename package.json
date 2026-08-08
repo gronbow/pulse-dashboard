@@ -60,6 +60,7 @@
     "audit:public": "node scripts/audit-public-repo.js",
     "audit:history": "node scripts/audit-git-history.js --ref HEAD",
     "audit:history:all": "node scripts/audit-git-history.js --all",
+    "audit:dependencies": "npm audit --audit-level=high",
     "audit:production": "npm audit --omit=dev --audit-level=high",
     "bridge:demo": "node bridge/mock-server.js",
     "bridge:codex": "node bridge/codex-handoff-server.js",
@@ -78,14 +79,14 @@
     "test:compact-mode": "node scripts/test-compact-mode.js",
     "test:secondary-health": "node scripts/test-secondary-health-card.js",
     "test:unavailable": "node scripts/test-unavailable-state.js",
-    "test:release": "npm test && npm run test:desktop && npm run test:compact-mode && npm run test:secondary-health && npm run test:unavailable && npm run test:packaged && npm run audit:production",
+    "test:release": "npm test && npm run test:desktop && npm run test:compact-mode && npm run test:secondary-health && npm run test:unavailable && npm run test:packaged && npm run audit:dependencies && npm run audit:production",
     "prepack:win": "npm run generate:icons",
     "pack:win": "electron-builder --dir --win --x64",
     "predist:win": "npm run generate:icons",
     "dist:win": "electron-builder --win nsis --x64"
   },
   "devDependencies": {
-    "electron": "^43.2.0",
+    "electron": "^43.3.0",
     "electron-builder": "^26.15.3"
   }
 }
