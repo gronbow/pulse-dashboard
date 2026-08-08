@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none';" />
     <link rel="stylesheet" href="styles.css" />
     <title>Pulse Dashboard</title>
   </head>
@@ -183,6 +183,10 @@
           <select id="refresh-interval"><option value="1">1 分钟</option><option value="5">5 分钟</option><option value="15">15 分钟</option><option value="30">30 分钟</option><option value="60">60 分钟</option></select>
         </label>
         <p class="muted tiny">仅检查本机是否有新快照，不会创建 Codex 任务或再次请求 COROS。</p>
+        <label>本机快照留存
+          <select id="data-retention-days"><option value="1">1 天</option><option value="7">7 天</option><option value="30">30 天</option></select>
+        </label>
+        <p class="muted tiny">健康与训练快照使用 Windows 系统加密保存，超过留存时间后自动删除。</p>
         <label>主题
           <select id="theme"><option value="dark">深色</option><option value="light">浅色</option><option value="system">跟随系统</option></select>
         </label>
@@ -195,6 +199,7 @@
           <select id="compact-aspect-ratio"><option value="16:9">16:9 横版</option><option value="4:3">4:3 横版</option><option value="21:9">21:9 超宽版</option></select>
         </label>
         <div class="bridge-test-row"><button id="test-bridge-button" type="button" class="secondary-button">测试桥接</button><span id="bridge-test-status" class="muted tiny"></span></div>
+        <div class="local-data-row"><button id="clear-local-data-button" type="button" class="danger-button">清除本机健康数据</button><span id="clear-local-data-status" class="muted tiny"></span></div>
         <div class="dialog-actions"><button value="cancel" class="secondary-button">取消</button><button id="save-settings" value="default" class="primary-button">保存设置</button></div>
       </form>
     </dialog>

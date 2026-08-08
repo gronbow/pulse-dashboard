@@ -117,7 +117,7 @@ codex plugin add pulse-dashboard@pulse-dashboard
 | 缺失数据 | 使用 `—`、`null`、空数组或明确提示，不用 `0` 或 Demo 数据补齐真实模式。 |
 | 平台 | 目前仅构建并验证 Windows x64；没有 macOS/Linux 安装包。 |
 | 安装签名 | 当前 Beta 未签名，可能触发 SmartScreen；尚未提供自动更新。 |
-| 本机存储 | 规范化快照与缓存以明文 JSON 保存在当前 Windows 用户的应用数据目录；不含凭据，但仍属于敏感健康信息。 |
+| 本机存储 | 规范化快照使用 Windows 当前用户的系统加密能力保存；默认留存 7 天，可选 1 / 7 / 30 天，并可在设置中一键清除。 |
 | 性能 | 本机发布候选采样约 0.31% 单核、约 404 MB 总工作集；CPU 达标，Electron 内存仍高于原 150 MB 目标。 |
 | 多平台/多品牌 | 架构保留适配层，但本 Beta 只验证 Codex + COROS MCP 路径。 |
 | AI 建议 | 依赖本次可用数据，数据不足时会说明限制；不能代替教练或医生。 |
@@ -125,12 +125,13 @@ codex plugin add pulse-dashboard@pulse-dashboard
 ## 隐私与安全边界
 
 - Handoff 和自定义 HTTP Bridge 都只允许 `localhost`、`127.0.0.1` 或 IPv6 loopback，不向局域网开放。
+- Handoff 使用随机挑战确认固定端口上的服务身份，并以当前用户随机令牌保护快照和洞察接口。
 - Pulse 不保存 COROS 密码、Token、Cookie、原始 MCP 响应、活动内部 ID 或坐标。
 - 公开仓库只提交合成快照和空状态截图；`.fit`、GPX/TCX/KML、运行缓存、私有配置和训练计划目录均被排除并接受自动审计。
 - 快照发布前至少需要两个有效健康信号、有效 AI 洞察；有距离的活动必须有正时长。
-- 如果你共用 Windows 账户，或设备存在更高的本地数据保护要求，应谨慎使用当前明文缓存 Beta。
+- 静态快照使用 Windows 系统加密，但无法抵御已经控制当前 Windows 账户或读取进程内存的恶意软件。
 
-完整字段和接口约定见 [Bridge Contract](docs/BRIDGE_CONTRACT.md)，Codex 插件说明见 [Codex Plugin](docs/CODEX_PLUGIN.md)。
+完整字段和接口约定见 [Bridge Contract](docs/BRIDGE_CONTRACT.md)，Codex 插件说明见 [Codex Plugin](docs/CODEX_PLUGIN.md)，本机数据边界见 [隐私说明](docs/PRIVACY.md) 与 [威胁模型](docs/THREAT_MODEL.md)。
 
 ## 从源码运行与验证
 

@@ -147,9 +147,12 @@ body.compact[data-compact-ratio="21:9"] .compact-unit { font-size: 8px; line-hei
 .bridge-test-row { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
 .bridge-test-row .secondary-button { padding: 7px 10px; }
 .bridge-test-row .muted { min-height: 14px; }
-.primary-button, .secondary-button { padding: 8px 13px; border-radius: 9px; font-size: 11px; }
+.local-data-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.local-data-row .muted { min-height: 14px; }
+.primary-button, .secondary-button, .danger-button { padding: 8px 13px; border-radius: 9px; font-size: 11px; }
 .primary-button { background: var(--green); color: #12170e; font-weight: 800; }
 .secondary-button { background: rgba(255,255,255,.08); color: var(--muted); }
+.danger-button { background: rgba(255, 105, 105, .12); color: #ffabab; border: 1px solid rgba(255, 105, 105, .25); }
 body.light { --bg: #f3f6f2; --panel: rgba(255, 255, 255, .9); --panel-soft: rgba(247, 250, 247, .9); --line: rgba(15, 25, 20, .1); --text: #172019; --muted: #68756d; --shadow: 0 24px 70px rgba(45, 65, 50, .2); }
 body.light .app-shell { background: radial-gradient(circle at 100% 0%, rgba(130, 177, 45, .16), transparent 33%), linear-gradient(155deg, rgba(245, 249, 245, .98), rgba(236, 243, 237, .94)); }
 body.light .compact-widget { background: radial-gradient(circle at 100% 0%, rgba(130, 177, 45, .16), transparent 42%), linear-gradient(155deg, rgba(245, 249, 245, .98), rgba(236, 243, 237, .94)); }

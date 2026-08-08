@@ -16,14 +16,16 @@ flowchart LR
 3. 桌面版在启动后运行本机 Handoff，并在选择“Codex + COROS MCP”数据源时读取该快照、缓存并渲染卡片。
 4. Handoff 接受新快照后会通知当前窗口立即重读，因此发布成功后不需要再手动点击刷新。
 
-Handoff 默认监听 `http://127.0.0.1:19091`，快照仅落在当前 Windows 用户的应用数据目录中。它不监听局域网地址。快照应通过 Pulse 的 Node 发布脚本以 `application/json; charset=utf-8` 提交；交接层会拒绝浏览器来源写入、明显乱码、占位零值和不完整活动，并使用同目录临时文件原子替换快照，防止把损坏文本或残缺数据写入看板缓存。
+Handoff 默认监听 `http://127.0.0.1:19091`，不监听局域网地址。桌面端首次启动时为当前 Windows 用户生成随机 Handoff 令牌；客户端先用一次性随机挑战校验服务身份证明，再携带 Bearer 令牌访问快照接口。因此，其他进程即使抢占固定端口，也不能伪造 Pulse 身份后取得快照。快照应通过 Pulse 的 Node 发布脚本以 `application/json; charset=utf-8` 提交；交接层会拒绝浏览器来源写入、未认证请求、明显乱码、占位零值和不完整活动。
+
+桌面端将 Handoff 与离线回退合并为一份加密快照存储，通过 Electron `safeStorage` 使用 Windows 当前用户的系统加密能力。设置中可选择 1、7 或 30 天留存，也可二次确认后一键清除。源码开发用的独立 Node Handoff 只在内存中保存快照。
 
 | 接口 | 用途 |
 |---|---|
-| `GET /api/health` | 查询 Handoff 是否已启动，以及是否已有已发布的快照。 |
-| `POST /api/snapshot` | 由 Codex 插件发布完整的标准化快照。 |
-| `GET /api/snapshot?timezone=...` | 供 Pulse 读取并展示当前快照。 |
-| `POST /api/insight` | 返回快照中已生成的训练建议和标签。 |
+| `GET /api/health?challenge=...` | 返回 HMAC 服务身份证明；携带 Bearer 令牌时同时返回快照就绪状态。 |
+| `POST /api/snapshot` | 由已认证的 Codex 插件发布完整标准化快照。 |
+| `GET /api/snapshot?timezone=...` | 供已认证的 Pulse Desktop 读取当前快照。 |
+| `POST /api/insight` | 向已认证的 Pulse Desktop 返回快照中的训练建议和标签。 |
 
 快照必须至少含有 `health` 或 `todayActivities`；字段缺失会按现有快照归一化规则显示为空值，不应伪造成 `0`。
 
@@ -78,7 +80,10 @@ Handoff 默认监听 `http://127.0.0.1:19091`，快照仅落在当前 Windows �
 ## 隐私与故障回退
 
 - Handoff 只接收本机回环地址的请求，发布脚本会拒绝非 `localhost` / `127.0.0.1` 的地址。
-- 写入接口要求 JSON，拒绝带浏览器 `Origin` 的请求；自定义 Bridge 同样限制在本机回环地址。
+- 固定端口使用随机挑战/HMAC 证明服务身份，API 使用当前用户随机 Bearer 令牌；写入接口要求 JSON，并拒绝带浏览器 `Origin` 的请求。
+- 桌面端快照使用 Windows 系统加密能力保存，不提供明文回退；自定义 Bridge 同样限制在本机回环地址。
 - 日志不记录完整健康数据、活动坐标、Token 或原始活动标识。
 - 无新快照时，桌面版仅保留相同 provider 的上一次有效缓存；若没有同源缓存，则展示全部指标不可用的等待同步状态，绝不回退合成 Demo 数字。
 - AI 训练建议仅作训练参考，不构成医疗建议。
+
+更完整的数据保存说明和攻击边界见 [隐私说明](PRIVACY.md) 与 [本地威胁模型](THREAT_MODEL.md)。

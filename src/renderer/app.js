@@ -332,6 +332,7 @@ async function openSettings() {
   $('#data-source').value = config.dataSource || 'demo';
   $('#bridge-url').value = config.bridgeUrl || '';
   $('#refresh-interval').value = String(config.refreshIntervalMinutes || 30);
+  $('#data-retention-days').value = String(config.dataRetentionDays || 7);
   $('#always-on-top').checked = Boolean(config.alwaysOnTop);
   $('#launch-at-login').checked = Boolean(config.launchAtLogin);
   $('#compact-mode').checked = Boolean(config.compactMode);
@@ -340,6 +341,7 @@ async function openSettings() {
   $('#opacity').value = String(config.opacity || 96);
   setText('#opacity-label', `${config.opacity || 96}%`);
   setText('#bridge-test-status', '');
+  setText('#clear-local-data-status', '');
   updateDataSourceControls();
   updateDisplayModeControls();
   if (!$('#settings-dialog').open) $('#settings-dialog').showModal();
@@ -366,6 +368,7 @@ async function saveSettings(event) {
     bridgeUrl: $('#bridge-url').value,
     timezone: config.timezone,
     refreshIntervalMinutes: Number($('#refresh-interval').value),
+    dataRetentionDays: Number($('#data-retention-days').value),
     alwaysOnTop: $('#always-on-top').checked,
     launchAtLogin: $('#launch-at-login').checked,
     compactMode: $('#compact-mode').checked,
@@ -380,6 +383,21 @@ async function saveSettings(event) {
   await refresh();
 }
 
+async function clearLocalData() {
+  const button = $('#clear-local-data-button');
+  button.disabled = true;
+  setText('#clear-local-data-status', '');
+  try {
+    const result = await window.pulseDesktop.clearLocalData();
+    setText('#clear-local-data-status', result.cleared ? '已清除' : '已取消');
+    if (result.cleared) await refresh();
+  } catch (error) {
+    setText('#clear-local-data-status', `失败：${error.message}`);
+  } finally {
+    button.disabled = false;
+  }
+}
+
 $('#refresh-button').addEventListener('click', refresh);
 $('#insight-button').addEventListener('click', regenerateInsight);
 $('#settings-button').addEventListener('click', openSettings);
@@ -389,6 +407,7 @@ $('#compact-settings-button').addEventListener('click', openSettings);
 $('#compact-hide-button').addEventListener('click', () => window.pulseDesktop.hide());
 $('#settings-form').addEventListener('submit', saveSettings);
 $('#test-bridge-button').addEventListener('click', testBridge);
+$('#clear-local-data-button').addEventListener('click', clearLocalData);
 $('#data-source').addEventListener('change', updateDataSourceControls);
 $('#compact-mode').addEventListener('change', updateDisplayModeControls);
 $('#opacity').addEventListener('input', (event) => setText('#opacity-label', `${event.target.value}%`));

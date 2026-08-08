@@ -4,6 +4,16 @@ const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { normalizeSnapshot } = require('../src/snapshot');
+const { isSnapshotExpired } = require('../src/secure-snapshot-store');
+const {
+  HANDOFF_PROTOCOL_VERSION,
+  HANDOFF_SERVICE,
+  createIdentityProof,
+  getOrCreateHandoffCredentials,
+  isAuthorizedRequest,
+  isValidIdentityChallenge,
+  resolveHandoffAuthPath
+} = require('../scripts/handoff-auth');
 
 const configuredPort = Number(process.env.PULSE_HANDOFF_PORT);
 const CODEX_HANDOFF_PORT = Number.isInteger(configuredPort) && configuredPort >= 0 && configuredPort <= 65_535
@@ -113,7 +123,7 @@ function assertSnapshotCompleteness(payload) {
   return payload;
 }
 
-function writeJsonAtomic(filePath, value) {
+function writeTextAtomic(filePath, value) {
   const directory = path.dirname(filePath);
   fs.mkdirSync(directory, { recursive: true });
   const temporaryPath = path.join(
@@ -121,21 +131,38 @@ function writeJsonAtomic(filePath, value) {
     `.${path.basename(filePath)}.${process.pid}.${crypto.randomUUID()}.tmp`
   );
   try {
-    fs.writeFileSync(temporaryPath, JSON.stringify(value, null, 2), 'utf8');
+    fs.writeFileSync(temporaryPath, value, 'utf8');
     fs.renameSync(temporaryPath, filePath);
   } finally {
     if (fs.existsSync(temporaryPath)) fs.unlinkSync(temporaryPath);
   }
 }
 
-function createCodexHandoffServer({ filePath = resolveHandoffPath() } = {}) {
+function createCodexHandoffServer({
+  filePath = resolveHandoffPath(),
+  authPath = resolveHandoffAuthPath(),
+  authToken,
+  encodeSnapshot = (value) => JSON.stringify(value, null, 2),
+  decodeSnapshot = (value) => JSON.parse(value),
+  getRetentionDays = () => 7
+} = {}) {
+  const credentials = authToken
+    ? { token: authToken }
+    : getOrCreateHandoffCredentials(authPath);
+  const handoffToken = credentials.token;
   let snapshot = null;
-  let lastError = '';
+  let lastError = '等待 Codex 快照';
   let server;
 
   function readSnapshot() {
+    if (!filePath) return snapshot;
     try {
-      const raw = assertSnapshotCompleteness(assertTextEncoding(assertSnapshotPayload(JSON.parse(fs.readFileSync(filePath, 'utf8')))));
+      const decoded = decodeSnapshot(fs.readFileSync(filePath, 'utf8'));
+      const raw = assertSnapshotCompleteness(assertTextEncoding(assertSnapshotPayload(decoded)));
+      if (isSnapshotExpired(raw, getRetentionDays())) {
+        fs.unlinkSync(filePath);
+        throw Object.assign(new Error('stored snapshot exceeded the configured retention period'), { code: 'ENOENT' });
+      }
       snapshot = normalizeSnapshot(raw, { source: 'bridge', provider: 'codex-coros-mcp' });
       lastError = '';
       return snapshot;
@@ -148,7 +175,7 @@ function createCodexHandoffServer({ filePath = resolveHandoffPath() } = {}) {
 
   function saveSnapshot(payload) {
     const normalized = normalizeSnapshot(assertSnapshotCompleteness(assertTextEncoding(assertSnapshotPayload(payload))), { source: 'bridge', provider: 'codex-coros-mcp' });
-    writeJsonAtomic(filePath, normalized);
+    if (filePath) writeTextAtomic(filePath, encodeSnapshot(normalized));
     snapshot = normalized;
     lastError = '';
     server?.emit('snapshot-updated', {
@@ -156,6 +183,13 @@ function createCodexHandoffServer({ filePath = resolveHandoffPath() } = {}) {
       provider: normalized.meta.provider
     });
     return normalized;
+  }
+
+  function clearSnapshot() {
+    snapshot = null;
+    lastError = '等待 Codex 快照';
+    if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    server?.emit('snapshot-cleared');
   }
 
   readSnapshot();
@@ -166,15 +200,32 @@ function createCodexHandoffServer({ filePath = resolveHandoffPath() } = {}) {
     }
     const requestUrl = new URL(request.url, 'http://127.0.0.1');
     if (request.method === 'GET' && requestUrl.pathname === '/api/health') {
+      const challenge = requestUrl.searchParams.get('challenge');
+      if (!isValidIdentityChallenge(challenge)) {
+        json(response, 400, { error: 'identity_challenge_required' });
+        return;
+      }
+      const identity = {
+        ok: true,
+        service: HANDOFF_SERVICE,
+        version: HANDOFF_PROTOCOL_VERSION,
+        proof: createIdentityProof(handoffToken, challenge)
+      };
+      if (!isAuthorizedRequest(request, handoffToken)) {
+        json(response, 200, identity);
+        return;
+      }
       const current = readSnapshot();
       json(response, 200, {
-        ok: true,
-        service: 'pulse-codex-handoff',
-        version: 1,
+        ...identity,
         ready: Boolean(current),
         lastUpdated: current?.meta?.lastUpdated || null,
         message: current ? 'Codex 快照可用' : lastError
       });
+      return;
+    }
+    if (!isAuthorizedRequest(request, handoffToken)) {
+      json(response, 401, { error: 'handoff_authentication_required' });
       return;
     }
     if (request.method === 'GET' && requestUrl.pathname === '/api/snapshot') {
@@ -212,11 +263,14 @@ function createCodexHandoffServer({ filePath = resolveHandoffPath() } = {}) {
   });
 
   server.handoffPath = filePath;
+  server.authPath = authPath;
+  server.handoffToken = handoffToken;
+  server.clearSnapshot = clearSnapshot;
   return server;
 }
 
 if (require.main === module) {
-  const server = createCodexHandoffServer();
+  const server = createCodexHandoffServer({ filePath: null });
   server.listen(CODEX_HANDOFF_PORT, '127.0.0.1', () => {
     console.log(`Pulse Codex handoff listening at ${CODEX_HANDOFF_URL}`);
   });

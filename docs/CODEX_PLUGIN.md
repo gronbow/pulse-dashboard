@@ -29,7 +29,7 @@ codex plugin add pulse-dashboard@pulse-dashboard
 1. 启动 Pulse Desktop，在设置中选择“Codex + COROS MCP”。
 2. 确认 Codex 中已经连接并授权 COROS MCP。
 3. 在新的 Codex 任务中输入：`刷新我的 Pulse 今日健康与训练快照`。
-4. 插件读取并归一化数据，通过质量门后发布到 `http://127.0.0.1:19091/api/snapshot`。
+4. 插件先用当前 Windows 用户的 Handoff 随机令牌验证本机服务身份，再将通过质量门的快照发布到 `http://127.0.0.1:19091/api/snapshot`。
 5. Pulse 收到发布事件后自动更新桌面卡片。
 
 还可以使用：
@@ -58,7 +58,7 @@ codex plugin add pulse-dashboard@pulse-dashboard
 
 - 桌面右上角“读取同步”只读取本机已发布快照，不会调用 COROS。
 - 当前不启用会创建可见 Codex 任务记录的定时 MCP 查询。
-- Handoff 只传递归一化快照，不传递 Codex/COROS 凭据。
+- Handoff 只传递归一化快照，不传递 Codex/COROS 凭据；本地随机令牌仅用于 Pulse 服务身份认证。
 - AI 建议仅供训练参考，不构成医疗建议。
 
 完整工作流规则见 [`skills/pulse-dashboard/SKILL.md`](../skills/pulse-dashboard/SKILL.md)，桌面接口见 [`BRIDGE_CONTRACT.md`](BRIDGE_CONTRACT.md)。
