@@ -56,5 +56,12 @@
   "insight": {
     "text": "睡眠评分 95，恢复 93%，短期与长期训练负荷接近。今天的训练刺激已经完成，今晚优先补足睡眠，明天根据晨起状态决定是否安排质量课。",
     "tags": ["恢复良好", "负荷平衡", "关注睡眠"]
+  },
+  "readiness": {
+    "status": "data_insufficient",
+    "confidence": "low",
+    "recommendationLevel": "informational",
+    "reasons": ["演示数据不包含真实主观疲劳与安全确认"],
+    "subjective": {}
   }
 }

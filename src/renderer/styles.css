@@ -48,6 +48,11 @@ h1 { margin: 1px 0 0; font-size: 19px; letter-spacing: -.04em; }
 .error-banner { margin: 0 0 10px; padding: 9px 11px; border: 1px solid rgba(255, 171, 97, .33); border-radius: 12px; background: rgba(255, 171, 97, .08); color: var(--orange); font-size: 11px; }
 .card { margin-bottom: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); backdrop-filter: blur(18px); }
 .insight-card { background: linear-gradient(135deg, rgba(44, 59, 34, .88), rgba(22, 29, 28, .92)); border-color: rgba(183, 243, 74, .22); }
+.insight-actions { display: flex; align-items: center; gap: 8px; }
+.readiness-chip { padding: 3px 6px; border-radius: 6px; font-size: 8px; white-space: nowrap; }
+.readiness-chip.ready { color: var(--green); background: var(--green-soft); }
+.readiness-chip.insufficient { color: var(--orange); background: rgba(255, 171, 97, .12); }
+.readiness-chip.stop { color: #ffabab; background: rgba(255, 105, 105, .14); }
 .section-label { font-size: 11px; font-weight: 800; letter-spacing: .04em; }
 .pulse-dot { display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px rgba(183,243,74,.1); vertical-align: 1px; }
 .insight-text { margin: 12px 0 10px; font-size: 15px; line-height: 1.65; letter-spacing: -.015em; }

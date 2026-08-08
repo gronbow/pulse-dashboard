@@ -13,6 +13,7 @@
 - [ ] `npm run test:secondary-health` 断言压力卡片与旧快照血氧回退。
 - [ ] `npm run test:unavailable` 断言无真实快照/同源缓存时不显示任何 Demo 健康数值。
 - [ ] `npm run test:local-security` 断言 Handoff 身份证明、随机令牌、加密存储信封与留存策略。
+- [ ] `npm run test:snapshot-policy` 断言时间戳/日期、活动数量、`data_insufficient` 与 `stop_refer` 安全门。
 - [ ] `npm run test:codex-handoff` 断言未认证请求、错误令牌和固定端口身份不匹配均被拒绝，且清除后不再返回快照。
 - [ ] 系统托盘与任务栏人工显示 Pulse 标志，而不是空白占位框或 Electron 默认原子图标。
 - [ ] `npm run pack:win` 成功，解包目录中只含桌面运行所需文件。
@@ -39,6 +40,8 @@
 
 - [ ] Pulse 使用 Codex + COROS MCP 数据源启动。
 - [ ] 插件至少取得两个有效健康信号。
+- [ ] 新发布快照具有有效 `asOf` / `lastUpdated` / `timezone`，不接受超过 36 小时或未来的发布结果。
+- [ ] 主观安全状态缺失时看板显示“数据不足”且无训练强度；疼痛、胸部症状或头晕触发 `stop_refer` 并覆盖正常穿戴指标。
 - [ ] 有距离的训练同时具有正时长。
 - [ ] 中文运动名称和洞察无乱码。
 - [ ] 插件发布后桌面窗口自动更新。

@@ -38,6 +38,7 @@ for (const relativePath of [
   '.codex-plugin/plugin.json',
   'skills/pulse-dashboard/SKILL.md',
   'scripts/handoff-auth.js',
+  'scripts/snapshot-policy.js',
   'scripts/publish-snapshot.js',
   'scripts/test-publish-snapshot.js',
   'LICENSE'

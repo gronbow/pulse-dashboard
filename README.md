@@ -120,7 +120,7 @@ codex plugin add pulse-dashboard@pulse-dashboard
 | 本机存储 | 规范化快照使用 Windows 当前用户的系统加密能力保存；默认留存 7 天，可选 1 / 7 / 30 天，并可在设置中一键清除。 |
 | 性能 | 本机发布候选采样约 0.31% 单核、约 404 MB 总工作集；CPU 达标，Electron 内存仍高于原 150 MB 目标。 |
 | 多平台/多品牌 | 架构保留适配层，但本 Beta 只验证 Codex + COROS MCP 路径。 |
-| AI 建议 | 依赖本次可用数据，数据不足时会说明限制；不能代替教练或医生。 |
+| AI 建议 | 客观数据可单独刷新；缺少当前主观安全确认时标记“数据不足”且不提供训练强度。疼痛、胸部症状或头晕会触发停止训练安全路径；不能代替教练或医生。 |
 
 ## 隐私与安全边界
 
@@ -129,6 +129,7 @@ codex plugin add pulse-dashboard@pulse-dashboard
 - Pulse 不保存 COROS 密码、Token、Cookie、原始 MCP 响应、活动内部 ID 或坐标。
 - 公开仓库只提交合成快照和空状态截图；`.fit`、GPX/TCX/KML、运行缓存、私有配置和训练计划目录均被排除并接受自动审计。
 - 快照发布前至少需要两个有效健康信号、有效 AI 洞察；有距离的活动必须有正时长。
+- 新快照必须具有有效且不过期的时间戳和显式 `readiness`；看板会显示数据覆盖与建议可信度，主观安全输入不完整时不得给训练强度。
 - 静态快照使用 Windows 系统加密，但无法抵御已经控制当前 Windows 账户或读取进程内存的恶意软件。
 
 完整字段和接口约定见 [Bridge Contract](docs/BRIDGE_CONTRACT.md)，Codex 插件说明见 [Codex Plugin](docs/CODEX_PLUGIN.md)，本机数据边界见 [隐私说明](docs/PRIVACY.md) 与 [威胁模型](docs/THREAT_MODEL.md)。

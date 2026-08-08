@@ -134,7 +134,7 @@ function renderLoadBars(entries) {
 
 function render(snapshotData) {
   snapshot = snapshotData;
-  const { health = {}, todayActivities = [], plan = {}, load = {}, trends = {}, insight = {}, meta = {} } = snapshot;
+  const { health = {}, todayActivities = [], plan = {}, load = {}, trends = {}, insight = {}, readiness = {}, meta = {} } = snapshot;
   const source = meta.source || 'demo';
   const timezone = meta.timezone || config?.timezone || 'Asia/Shanghai';
   const asOf = new Date(meta.asOf || Date.now());
@@ -178,6 +178,23 @@ function render(snapshotData) {
     : '数据日期未知');
   setText('#compact-updated', source === 'unavailable' ? '等待同步' : updatedAt);
   setText('#insight-button', config?.dataSource === 'codex' ? '读取最新' : '重新生成');
+
+  const readinessChip = $('#readiness-chip');
+  const confidenceLabels = { low: '低可信度', moderate: '中可信度', high: '高可信度' };
+  const healthSignalCount = Number(readiness.coverage?.healthSignals || 0);
+  if (readiness.status === 'stop_refer') {
+    readinessChip.textContent = '安全优先 · 停止训练';
+    readinessChip.className = 'readiness-chip stop';
+  } else if (readiness.status === 'ready') {
+    readinessChip.textContent = `可建议 · ${confidenceLabels[readiness.confidence] || '中可信度'}`;
+    readinessChip.className = 'readiness-chip ready';
+  } else {
+    readinessChip.textContent = `数据不足 · ${healthSignalCount} 项客观信号`;
+    readinessChip.className = 'readiness-chip insufficient';
+  }
+  readinessChip.title = readiness.coverage?.subjectiveComplete
+    ? '已包含当前主观疲劳与安全确认'
+    : '未完整确认疲劳、酸痛、疼痛、疾病、胸部症状和头晕';
 
   setText('#insight-text', insight.text || '暂无洞察，请点击重新生成。');
   $('#insight-tags').innerHTML = (insight.tags || []).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('');

@@ -40,7 +40,7 @@ server.listen(0, '127.0.0.1', async () => {
   const date = timestamp.slice(0, 10);
   const previousDate = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
   const payload = {
-    meta: { asOf: timestamp, lastUpdated: timestamp },
+    meta: { asOf: timestamp, lastUpdated: timestamp, timezone: 'Asia/Shanghai' },
     health: {
       sleep: { durationMinutes: 390, score: 92, date },
       restingHeartRate: { value: 50, date },
@@ -53,7 +53,14 @@ server.listen(0, '127.0.0.1', async () => {
         { date, shortTerm: 66, longTerm: 65, ratio: 1.01 }
       ]
     },
-    insight: { text: 'Codex 已生成测试洞察。', tags: ['测试'] }
+    insight: { text: 'Codex 已生成测试洞察。', tags: ['测试'] },
+    readiness: {
+      status: 'data_insufficient',
+      confidence: 'low',
+      recommendationLevel: 'informational',
+      reasons: ['测试未收集主观疲劳与安全状态'],
+      subjective: {}
+    }
   };
   try {
     const noChallenge = await fetch(`${base}/api/health`);
@@ -79,7 +86,7 @@ server.listen(0, '127.0.0.1', async () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(payload)
     }));
-    assert.equal(accepted.status, 201);
+    assert.equal(accepted.status, 201, await accepted.text());
     assert.equal(updateEvents, 1);
     assert.equal(fs.readFileSync(filePath, 'utf8').includes(payload.insight.text), false, 'stored snapshot must be sealed');
 
