@@ -72,8 +72,9 @@ async function main() {
       PULSE_HANDOFF_TOKEN: token
     };
 
+    const now = new Date().toISOString();
     const validSnapshot = {
-      meta: { date: '2026-07-27', timezone: 'Asia/Shanghai' },
+      meta: { asOf: now, lastUpdated: now, timezone: 'Asia/Shanghai' },
       health: {
         sleep: { durationMinutes: 432, score: 91 },
         restingHeartRate: { value: 53 },
@@ -85,8 +86,15 @@ async function main() {
         { sport: '户外跑步', distanceKm: 6.72, durationSeconds: 2_154, averageHeartRate: 145 }
       ],
       insight: {
-        text: '睡眠和恢复状态良好，今日跑步已完成，明日可按计划训练。',
+        text: '客观睡眠和恢复数据可用，但未确认主观状态，暂不提供明日训练强度建议。',
         tags: ['恢复良好', '训练完成']
+      },
+      readiness: {
+        status: 'data_insufficient',
+        confidence: 'low',
+        recommendationLevel: 'informational',
+        reasons: ['未收集当前主观疲劳与安全状态，不提供强度建议'],
+        subjective: {}
       }
     };
     fs.writeFileSync(validPath, JSON.stringify(validSnapshot), 'utf8');

@@ -2,6 +2,8 @@
 
 Pulse 的产品主体是桌面数据看板，不是另一个 COROS 账号客户端。Codex 负责调用已授权的 COROS MCP 工具、整理数据并生成训练建议；Pulse 负责把该结果渲染为常驻桌面的健康、训练和计划卡片。
 
+当前标准化快照版本为 v2；v2 增加显式 `readiness`、发布时间新鲜度和集合上限。旧版完整快照仍可降级显示为 `data_insufficient`，但必须按 v2 规则重新发布后才能覆盖桌面数据。
+
 ```mermaid
 flowchart LR
   Codex["Codex Pulse 插件"] -->|"标准化 Pulse 快照"| Handoff["本机 Codex Handoff\n127.0.0.1:19091"]
@@ -27,7 +29,7 @@ Handoff 默认监听 `http://127.0.0.1:19091`，不监听局域网地址。桌�
 | `GET /api/snapshot?timezone=...` | 供已认证的 Pulse Desktop 读取当前快照。 |
 | `POST /api/insight` | 向已认证的 Pulse Desktop 返回快照中的训练建议和标签。 |
 
-快照必须至少含有 `health` 或 `todayActivities`；字段缺失会按现有快照归一化规则显示为空值，不应伪造成 `0`。
+快照必须含有 `health`、`todayActivities`、有效 `meta.asOf` / `meta.lastUpdated` / `meta.timezone` 和显式 `readiness`；字段缺失会按现有快照归一化规则显示为空值，不应伪造成 `0`。新发布快照的 `lastUpdated` 必须在最近 36 小时内，不能位于未来；旧快照仍可作为带时间标记的显示/离线数据读取，但不能重新冒充即时发布结果。
 
 为避免凌晨或设备尚未归档时把“最近有效值”误写成“今日值”，健康指标可以携带独立日期：
 
@@ -61,7 +63,33 @@ Handoff 默认监听 `http://127.0.0.1:19091`，不监听局域网地址。桌�
 }
 ```
 
-对于 Codex 自动同步，发布前还必须满足：至少两项有效健康指标、非空且基于数据的训练洞察；若活动有距离，则必须包含正的时长。任一条件不满足时，Handoff 会拒绝该快照并保留上一次有效数据。
+对于 Codex 自动同步，发布前还必须满足：至少两项有效健康指标、非空且基于数据的训练洞察；若活动有距离，则必须包含正的时长；今日活动、标签和逐日负荷分别不得超过 32、8 和 31 条。任一条件不满足时，Handoff 会拒绝该快照并保留上一次有效数据。
+
+训练建议安全状态使用：
+
+```json
+{
+  "readiness": {
+    "status": "data_insufficient",
+    "confidence": "low",
+    "recommendationLevel": "informational",
+    "reasons": ["尚未确认当前主观疲劳与安全状态"],
+    "subjective": {
+      "collectedAt": null,
+      "fatigue": null,
+      "soreness": null,
+      "pain": null,
+      "illness": null,
+      "chestSymptoms": null,
+      "dizziness": null
+    }
+  }
+}
+```
+
+- 只刷新客观数据时允许 `data_insufficient`，看板照常更新，但只能给信息说明或休息建议，不能给任何训练强度。
+- 只有最近 36 小时内完整确认疲劳、酸痛、疼痛、疾病、胸部症状和头晕，且安全项均为否时，才允许 `ready` 与轻松/中等/高强度建议。
+- 疼痛、胸部症状或头晕触发 `stop_refer`，它覆盖正常的恢复、HRV 或负荷指标；输出停止训练与按严重程度寻求合适专业评估的安全提醒，不进行诊断。
 
 ## 责任边界
 

@@ -1,4 +1,5 @@
-const SNAPSHOT_VERSION = 1;
+const SNAPSHOT_VERSION = 2;
+const { countHealthSignals } = require('../scripts/snapshot-policy');
 
 function finiteNumber(value, fallback = null, minimum = -Infinity, maximum = Infinity) {
   if (value == null || value === '') return fallback;
@@ -68,6 +69,33 @@ function validDate(value, fallback) {
   return Number.isNaN(date.getTime()) ? fallback : date.toISOString();
 }
 
+function booleanOrNull(value) {
+  return typeof value === 'boolean' ? value : null;
+}
+
+function normalizeReadiness(value) {
+  const raw = value && typeof value === 'object' ? value : {};
+  const subjective = raw.subjective && typeof raw.subjective === 'object' ? raw.subjective : {};
+  return {
+    status: ['ready', 'data_insufficient', 'stop_refer'].includes(raw.status) ? raw.status : 'data_insufficient',
+    confidence: ['low', 'moderate', 'high'].includes(raw.confidence) ? raw.confidence : 'low',
+    recommendationLevel: ['informational', 'rest', 'easy', 'moderate', 'hard'].includes(raw.recommendationLevel)
+      ? raw.recommendationLevel
+      : 'informational',
+    reasons: Array.isArray(raw.reasons) ? raw.reasons.map((reason) => text(reason)).filter(Boolean).slice(0, 6) : [],
+    subjective: {
+      collectedAt: validDate(subjective.collectedAt, null),
+      fatigue: finiteNumber(subjective.fatigue, null, 0, 10),
+      soreness: finiteNumber(subjective.soreness, null, 0, 10),
+      pain: booleanOrNull(subjective.pain),
+      illness: booleanOrNull(subjective.illness),
+      chestSymptoms: booleanOrNull(subjective.chestSymptoms),
+      dizziness: booleanOrNull(subjective.dizziness)
+    },
+    coverage: { healthSignals: 0, subjectiveComplete: false }
+  };
+}
+
 function normalizeActivity(activity) {
   if (!activity || typeof activity !== 'object') return null;
   const distanceKm = finiteNumber(activity.distanceKm, 0, 0, 1000);
@@ -104,7 +132,7 @@ function normalizeSnapshot(input, metaOverrides = {}) {
   const rawInsight = raw.insight && typeof raw.insight === 'object' ? raw.insight : {};
   const now = new Date().toISOString();
 
-  return {
+  const normalized = {
     version: SNAPSHOT_VERSION,
     meta: {
       source: text(metaOverrides.source || raw.meta?.source, 'demo'),
@@ -178,8 +206,23 @@ function normalizeSnapshot(input, metaOverrides = {}) {
     insight: {
       text: text(rawInsight.text, ''),
       tags: Array.isArray(rawInsight.tags) ? rawInsight.tags.map((tag) => text(tag)).filter(Boolean).slice(0, 8) : []
-    }
+    },
+    readiness: normalizeReadiness(raw.readiness)
   };
+  const subjective = normalized.readiness.subjective;
+  normalized.readiness.coverage = {
+    healthSignals: countHealthSignals(normalized),
+    subjectiveComplete: Boolean(
+      subjective.collectedAt
+      && subjective.fatigue !== null
+      && subjective.soreness !== null
+      && subjective.pain !== null
+      && subjective.illness !== null
+      && subjective.chestSymptoms !== null
+      && subjective.dizziness !== null
+    )
+  };
+  return normalized;
 }
 
 function createUnavailableSnapshot({
@@ -207,6 +250,13 @@ function createUnavailableSnapshot({
         ? '尚未收到真实 COROS 快照，请先在 Codex 中刷新 Pulse。'
         : '尚未收到桥接快照，请先检查本地数据源连接。',
       tags: []
+    },
+    readiness: {
+      status: 'data_insufficient',
+      confidence: 'low',
+      recommendationLevel: 'informational',
+      reasons: ['尚未收到可验证的健康与主观状态数据'],
+      subjective: {}
     }
   }, {
     source: 'unavailable',

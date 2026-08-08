@@ -42,7 +42,7 @@ codex plugin add pulse-dashboard@pulse-dashboard
 
 ## 数据范围与质量门
 
-插件尽量读取睡眠、静息心率、睡眠 HRV、恢复状态、步数、日均压力、今日活动、训练计划和最近七日训练负荷，并生成 `meta`、`health`、`todayActivities`、`plan`、`load`、`trends`、`insight` 七类字段。
+插件尽量读取睡眠、静息心率、睡眠 HRV、恢复状态、步数、日均压力、今日活动、训练计划和最近七日训练负荷，并生成 `meta`、`health`、`todayActivities`、`plan`、`load`、`trends`、`insight` 与 `readiness` 八类字段。
 
 发布前必须满足：
 
@@ -51,6 +51,9 @@ codex plugin add pulse-dashboard@pulse-dashboard
 - 距离大于 0 的活动必须有大于 0 的时长。
 - 中文字段保持 UTF-8，不出现明显乱码。
 - 缺失值使用 `null`、空数组或明确无数据状态，不用 `0` 补齐。
+- 时间戳必须有效、新发布快照不早于 36 小时且不在未来；活动、标签和逐日负荷有固定数量上限。
+- 只刷新看板但缺少主观状态时使用 `data_insufficient`，不得给训练强度；训练建议请求需要确认疲劳、酸痛、疼痛、疾病、胸部症状和头晕。
+- 疼痛、胸部症状或头晕触发 `stop_refer`，覆盖正常穿戴设备指标并停止训练建议。
 
 未通过质量门时保留桌面端上一份完整快照，并向用户说明原因。
 

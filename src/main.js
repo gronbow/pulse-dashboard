@@ -21,6 +21,7 @@ const {
   normalizeRetentionDays,
   snapshotTimestamp
 } = require('./secure-snapshot-store');
+const { assertSnapshotForDisplay } = require('../scripts/snapshot-policy');
 
 const WINDOWS_APP_ID = 'app.pulse.dashboard';
 const DEFAULT_CONFIG = {
@@ -225,10 +226,7 @@ function mockSnapshot() {
 }
 
 function normalizeBridgeSnapshot(payload, metaOverrides) {
-  if (!payload || typeof payload !== 'object' || (!payload.health && !Array.isArray(payload.todayActivities))) {
-    throw new Error('桥接返回缺少 health 或 todayActivities 字段');
-  }
-  return normalizeSnapshot(payload, metaOverrides);
+  return normalizeSnapshot(assertSnapshotForDisplay(payload), metaOverrides);
 }
 
 function resolveBridgeUrl(config) {
