@@ -13,7 +13,7 @@ const result = spawnSync(process.execPath, [path.join(__dirname, 'test-electron-
       '#rhr-value': '—',
       '#sleep-value': '—',
       '#insight-text': '尚未收到真实 COROS 快照',
-      '#error-banner': '本机 Handoff 尚未就绪'
+      '#error-banner': '等待 Codex 快照'
     })
   },
   encoding: 'utf8',

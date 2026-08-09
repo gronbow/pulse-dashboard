@@ -34,6 +34,7 @@ let mainWindow;
 let tray;
 let quitting = false;
 let codexHandoffServer;
+let codexHandoffUrl = CODEX_HANDOFF_URL;
 let invalidLegacySnapshotPaths = [];
 let applyingWindowLayout = false;
 let persistWindowBoundsTimer;
@@ -221,7 +222,7 @@ function normalizeBridgeSnapshot(payload, metaOverrides) {
 }
 
 function resolveBridgeUrl(config) {
-  if (config.dataSource === 'codex') return CODEX_HANDOFF_URL;
+  if (config.dataSource === 'codex') return codexHandoffUrl;
   return config.bridgeUrl;
 }
 
@@ -780,7 +781,7 @@ function runWindowIconCheck(outputPath) {
 }
 
 function startCodexHandoffBridge() {
-  if (codexHandoffServer) return;
+  if (codexHandoffServer) return Promise.resolve(codexHandoffServer);
   migrateLegacySnapshotStore();
   const codec = createSecureSnapshotCodec(safeStorage);
   codexHandoffServer = createCodexHandoffServer({
@@ -798,7 +799,23 @@ function startCodexHandoffBridge() {
   codexHandoffServer.on('error', (error) => {
     console.error(`Pulse Codex handoff bridge (${CODEX_HANDOFF_PORT}) unavailable: ${error.message}`);
   });
-  codexHandoffServer.listen(CODEX_HANDOFF_PORT, '127.0.0.1');
+  return new Promise((resolve, reject) => {
+    const handleStartupError = (error) => {
+      codexHandoffServer?.off('listening', handleListening);
+      reject(error);
+    };
+    const handleListening = () => {
+      codexHandoffServer?.off('error', handleStartupError);
+      const address = codexHandoffServer?.address();
+      if (address && typeof address === 'object') {
+        codexHandoffUrl = `http://127.0.0.1:${address.port}`;
+      }
+      resolve(codexHandoffServer);
+    };
+    codexHandoffServer.once('error', handleStartupError);
+    codexHandoffServer.once('listening', handleListening);
+    codexHandoffServer.listen(CODEX_HANDOFF_PORT, '127.0.0.1');
+  });
 }
 
 if (!hasSingleInstanceLock) {
@@ -810,7 +827,7 @@ if (!hasSingleInstanceLock) {
     mainWindow.show();
     mainWindow.focus();
   });
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
     Menu.setApplicationMenu(null);
     configureSessionSecurity();
     const trayCheckOutput = trayIconCheckPath();
@@ -836,7 +853,7 @@ if (!hasSingleInstanceLock) {
       return;
     }
     try {
-      startCodexHandoffBridge();
+      await startCodexHandoffBridge();
     } catch (error) {
       codexHandoffServer = null;
       console.error(`Pulse secure Handoff could not start: ${error.message}`);
