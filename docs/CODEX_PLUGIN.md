@@ -18,11 +18,11 @@ plugins/pulse-dashboard/
 安装命令：
 
 ```powershell
-codex plugin marketplace add gronbow/pulse-dashboard --ref main
+codex plugin marketplace add gronbow/pulse-dashboard --ref v0.5.5-beta
 codex plugin add pulse-dashboard@pulse-dashboard
 ```
 
-安装或更新后请新建 Codex 任务，使插件被重新加载。
+安装或更新后请新建 Codex 任务，使插件被重新加载。公开安装必须使用与 Desktop 安装包相同的 Release 标签，不应让旧 Desktop 加载 `main` 的开发中插件；完整对应关系见[版本兼容性](VERSION_COMPATIBILITY.md)。
 
 ## 使用顺序
 

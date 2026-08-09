@@ -22,11 +22,14 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Run pre-build release verification
+        run: npm run test:ci
+
       - name: Build Windows installer
         run: npm run dist:win
 
-      - name: Run release verification
-        run: npm run test:release
+      - name: Verify packaged application
+        run: npm run test:packaged
 
       - name: Upload unsigned beta installer
         uses: actions/upload-artifact@v4

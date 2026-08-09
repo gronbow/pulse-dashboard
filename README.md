@@ -2,7 +2,7 @@
 
 Pulse 是一个由 Codex 宿主驱动的 Windows 健康与训练桌面看板。Codex 通过用户已经连接并授权的 COROS MCP 读取数据、生成训练洞察，再将经过归一化和脱敏的快照交给 Pulse 在桌面卡片中展示。
 
-> **v0.5.5 Beta**：这是可运行的公开测试版，不是官方 COROS 客户端，不是独立数据监测 App，也不是医疗产品。真实数据更新仍需从 Codex 任务发起；桌面上的“读取同步”只重读本机已有快照。此版本新增 16:9、4:3 和 21:9 简洁小组件布局。
+> **公开版本：v0.5.5 Beta；当前源码：v0.5.6 候选（尚未发布）**。这是可运行的公开测试项目，不是官方 COROS 客户端，不是独立数据监测 App，也不是医疗产品。真实数据更新仍需从 Codex 任务发起；桌面上的“读取同步”只重读本机已有快照。Desktop 与 Codex 插件必须使用同一发布版本，详见[版本兼容性](docs/VERSION_COMPATIBILITY.md)。
 
 ## 展示效果
 
@@ -76,7 +76,7 @@ COROS MCP → Codex Pulse 插件 → 127.0.0.1 Handoff → Pulse 桌面看板
 
 ### 1. 安装 Windows 桌面版
 
-从 [GitHub Releases](https://github.com/gronbow/pulse-dashboard/releases) 下载 `Pulse-Dashboard-Setup-0.5.5-x64.exe`。
+当前公开安装组合是 v0.5.5 Beta。从 [GitHub Releases](https://github.com/gronbow/pulse-dashboard/releases/tag/v0.5.5-beta) 下载 `Pulse-Dashboard-Setup-0.5.5-x64.exe`。
 
 要求：
 
@@ -89,11 +89,11 @@ COROS MCP → Codex Pulse 插件 → 127.0.0.1 Handoff → Pulse 桌面看板
 在可使用 Codex CLI 的终端执行：
 
 ```powershell
-codex plugin marketplace add gronbow/pulse-dashboard --ref main
+codex plugin marketplace add gronbow/pulse-dashboard --ref v0.5.5-beta
 codex plugin add pulse-dashboard@pulse-dashboard
 ```
 
-然后新建一个 Codex 任务，使新安装的插件被加载。当前公开流程以 `codex-cli 0.145.0-alpha.30` 验证；Codex 仍在迭代，后续版本的插件命令可能变化。
+然后新建一个 Codex 任务，使新安装的插件被加载。不要把 v0.5.5 Desktop 与 `main` 分支插件混用；`main` 当前是采用新版 Handoff 认证协议的 v0.5.6 开发候选。当前公开流程以 `codex-cli 0.145.0-alpha.30` 验证；Codex 仍在迭代，后续版本的插件命令可能变化。
 
 ### 3. 连接并刷新
 
@@ -151,6 +151,7 @@ npm run audit:history
 npm run audit:dependencies
 npm run audit:production
 npm run test:desktop
+npm run test:ci
 npm run test:release
 npm run dist:win
 ```
@@ -158,7 +159,8 @@ npm run dist:win
 - `npm test` 覆盖快照归一化、Bridge/Handoff、UTF-8、发布质量门、公开插件包、隐私审计和 Windows 图标。
 - `npm run audit:history` 扫描当前待发布分支可达历史，避免旧提交泄露个人路径、活动 ID 或凭据形态内容。
 - `npm run audit:dependencies` 检查开发与运行时的完整依赖树；`audit:production` 单独复核实际打包运行时。
-- `npm run test:release` 还会启动真实 Electron 窗口和已打包 EXE；运行前需先执行 `npm run pack:win`。
+- `npm run test:ci` 覆盖数据链、隐私、Git 历史、依赖审计，以及总览、三种小组件、次要健康卡片和无数据状态的真实 Electron 渲染。
+- `npm run test:release` 在 `test:ci` 基础上验证已打包 EXE；运行前需先执行 `npm run pack:win` 或 `npm run dist:win`。
 - 构建采用文件白名单，桌面安装包不会包含本地训练文件、缓存或插件开发目录。
 
 发布验收、已知限制和安装包校验记录见 [v0.5.5 发布候选审计](docs/V0.5.5_RELEASE_AUDIT.md)，版本变化见 [v0.5.5 Release Notes](docs/RELEASE_NOTES_V0.5.5_BETA.md)，后续方向见 [Roadmap](docs/ROADMAP.md)。

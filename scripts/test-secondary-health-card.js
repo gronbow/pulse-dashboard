@@ -12,6 +12,9 @@ const fixturePath = path.join(
 
 try {
   const snapshot = JSON.parse(fs.readFileSync(path.join(root, 'src', 'mock', 'snapshot.json'), 'utf8'));
+  const now = new Date().toISOString();
+  snapshot.meta.asOf = now;
+  snapshot.meta.lastUpdated = now;
   delete snapshot.health.stress;
   snapshot.health.spo2 = {
     value: 97,

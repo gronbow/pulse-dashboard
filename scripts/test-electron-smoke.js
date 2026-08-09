@@ -25,7 +25,8 @@ const screenshotPath = path.join(
     : scrollSelector ? 'pulse-dashboard-trends.png' : 'pulse-dashboard-smoke.png'
 );
 const userDataPath = fs.mkdtempSync(path.join(os.tmpdir(), 'pulse-electron-smoke-'));
-const handoffPath = path.join(userDataPath, 'handoff.json');
+const legacySnapshotPath = path.join(userDataPath, 'snapshot-cache.json');
+const handoffAuthPath = path.join(userDataPath, 'handoff-auth.json');
 const defaultExpectations = JSON.stringify({
   '#secondary-health-label': '日均压力',
   '#secondary-health-value': '32'
@@ -34,7 +35,7 @@ const defaultExpectations = JSON.stringify({
 fs.mkdirSync(outputDirectory, { recursive: true });
 if (fs.existsSync(screenshotPath)) fs.unlinkSync(screenshotPath);
 if (liveSnapshotSource || smokeDataSource !== 'demo' || compactMode) {
-  if (liveSnapshotSource) fs.copyFileSync(liveSnapshotSource, handoffPath);
+  if (liveSnapshotSource) fs.copyFileSync(liveSnapshotSource, legacySnapshotPath);
   fs.writeFileSync(path.join(userDataPath, 'config.json'), JSON.stringify({
     dataSource: smokeDataSource,
     bridgeUrl: '',
@@ -65,7 +66,7 @@ const child = spawn(electronPath, [
   cwd: root,
   env: {
     ...process.env,
-    PULSE_HANDOFF_PATH: handoffPath,
+    PULSE_HANDOFF_AUTH_PATH: handoffAuthPath,
     PULSE_SMOKE_EXPECTATIONS: process.env.PULSE_SMOKE_EXPECTATIONS
       || (liveSnapshotSource || smokeDataSource !== 'demo' ? '' : defaultExpectations),
     PULSE_HANDOFF_PORT: liveSnapshotSource
