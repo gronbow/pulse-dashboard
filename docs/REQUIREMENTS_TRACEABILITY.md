@@ -53,6 +53,7 @@
 | macOS | 后续 | V0.5 Beta 仅发布 Windows；签名与 DMG 延后。 |
 | DPI 125%/150% | 已完成/外部验证 | 自动化真实 Electron 渲染已覆盖 100%、125% 和 150%，包括三种小组件、浅色主题、长文本和横向溢出；另一台 Windows 设备的系统级目视复测仍待完成。 |
 | GitHub Beta | 已完成/外部验证 | v0.5.5 已从干净公开分支合并到 `main`，CI、历史审计、模板、三种简洁小组件合成截图和源码归档均已验证；GitHub Pre-release 已发布，另一台 Windows 设备安装与 DPI 复测仍待完成。 |
+| 发布供应链 | 候选已完成 | v0.5.6 候选固定 Actions 提交并加入 Dependabot、PR 依赖审查、SPDX SBOM、SHA-256 和 GitHub 构建/SBOM 证明；证明仅在候选 PR 合并后实际运行手动工作流时产生。 |
 
 ## V0.3/V0.5 后续能力
 

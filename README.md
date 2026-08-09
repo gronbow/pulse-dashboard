@@ -49,6 +49,7 @@ Pulse 是一个由 Codex 宿主驱动的 Windows 健康与训练桌面看板。C
 - 提供简洁小组件模式：以 16:9（360×203）、4:3（360×270）或 21:9（420×180）横版小窗，只显示步数、当天已记录活动消耗、静息心率和睡眠时长。
 - 在 Bridge 暂时不可用时保留同一数据来源的最后一份完整快照；不完整数据、零时长跑步和明显乱码不会覆盖旧快照。
 - 提供独立的合成演示模式，用于检查布局和交互，不连接真实账户。
+- 候选发布流程固定 GitHub Actions 到完整提交，生成安装包 SHA-256、SPDX SBOM 与 GitHub 构建/SBOM 证明；当前安装包仍未代码签名。
 
 ## 它不是什么
 
@@ -153,6 +154,7 @@ npm run audit:history
 npm run audit:dependencies
 npm run audit:production
 npm run test:desktop
+npm run test:workflows
 npm run test:ci
 npm run test:release
 npm run dist:win
@@ -160,12 +162,13 @@ npm run dist:win
 
 - `npm test` 覆盖快照归一化、Bridge/Handoff、UTF-8、发布质量门、公开插件包、隐私审计和 Windows 图标。
 - `npm run audit:history` 扫描当前待发布分支可达历史，避免旧提交泄露个人路径、活动 ID 或凭据形态内容。
-- `npm run audit:dependencies` 检查开发与运行时的完整依赖树；`audit:production` 单独复核实际打包运行时。
+- `npm run audit:dependencies` 直接检查锁文件中的完整依赖集合；`audit:production` 再以省略开发依赖的口径复核，两项都不依赖本机 `node_modules` 的偶然状态。
 - `npm run test:ci` 覆盖数据链、隐私、Git 历史、依赖审计，以及总览、三种小组件、浅色长文本、次要健康卡片和无数据状态的真实 Electron 渲染；小组件分别检查 100%、125% 和 150% 缩放。
+- `npm run test:workflows` 断言外部 Actions 使用完整提交固定，并检查依赖审查、SBOM、校验和与构建证明门。
 - `npm run test:release` 在 `test:ci` 基础上验证已打包 EXE；运行前需先执行 `npm run pack:win` 或 `npm run dist:win`。
 - 构建采用文件白名单，桌面安装包不会包含本地训练文件、缓存或插件开发目录。
 
-发布验收、已知限制和安装包校验记录见 [v0.5.5 发布候选审计](docs/V0.5.5_RELEASE_AUDIT.md)，版本变化见 [v0.5.5 Release Notes](docs/RELEASE_NOTES_V0.5.5_BETA.md)，后续方向见 [Roadmap](docs/ROADMAP.md)。
+发布验收、已知限制和安装包校验记录见 [v0.5.5 发布候选审计](docs/V0.5.5_RELEASE_AUDIT.md)，当前未发布变化见 [v0.5.6 Candidate Notes](docs/RELEASE_NOTES_V0.5.6_CANDIDATE.md)，供应链核验见 [Supply Chain](docs/SUPPLY_CHAIN.md)，后续方向见 [Roadmap](docs/ROADMAP.md)。
 
 ## 项目状态与反馈
 
