@@ -47,8 +47,6 @@ function assertTextEncoding(snapshot) {
     snapshot.plan?.name,
     snapshot.plan?.title,
     snapshot.plan?.description,
-    snapshot.insight?.text,
-    ...(Array.isArray(snapshot.insight?.tags) ? snapshot.insight.tags : []),
     ...(Array.isArray(snapshot.readiness?.reasons) ? snapshot.readiness.reasons : [])
   ];
   if (candidates.some(hasEncodingCorruption)) {
@@ -67,10 +65,6 @@ function countHealthSignals(snapshot) {
 function assertSnapshotCompleteness(snapshot) {
   if (countHealthSignals(snapshot) < 2) {
     throw new Error('snapshot is incomplete: publish at least two valid health signals instead of placeholder zeros');
-  }
-  const insight = String(snapshot.insight?.text || '').trim();
-  if (insight.length < 8 || insight.length > 1_000) {
-    throw new Error('snapshot is incomplete: a concise data-grounded training insight is required');
   }
   for (const activity of Array.isArray(snapshot.todayActivities) ? snapshot.todayActivities : []) {
     const distance = Number(activity?.distanceKm);
@@ -105,6 +99,24 @@ function dateKeyPlusDays(dateKey, days) {
   return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
 }
 
+function dateKeyInTimezone(timestamp, timezone) {
+  let parts;
+  try {
+    parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(new Date(timestamp));
+  } catch {
+    throw new Error('snapshot meta.timezone must be a valid IANA timezone');
+  }
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  const dateKey = `${values.year}-${values.month}-${values.day}`;
+  if (!validDateKey(dateKey)) throw new Error('snapshot meta.asOf does not contain a valid calendar date');
+  return dateKey;
+}
+
 function assertDatesAndFreshness(snapshot, {
   requireFresh = false,
   now = Date.now(),
@@ -127,8 +139,7 @@ function assertDatesAndFreshness(snapshot, {
     throw new Error(`snapshot is stale: lastUpdated exceeds ${maxSnapshotAgeHours} hours`);
   }
 
-  const asOfDate = String(snapshot.meta.asOf).slice(0, 10);
-  if (!validDateKey(asOfDate)) throw new Error('snapshot meta.asOf does not contain a valid calendar date');
+  const asOfDate = dateKeyInTimezone(asOf, snapshot.meta.timezone);
   const observationDates = [
     ...Object.values(snapshot.health || {}).map((metric) => metric?.date),
     ...(Array.isArray(snapshot.trends?.trainingLoad)
@@ -283,6 +294,7 @@ module.exports = {
   RECOMMENDATION_LEVELS,
   assertCollectionLimits,
   assertDatesAndFreshness,
+  dateKeyInTimezone,
   assertReadinessGate,
   assertSnapshotCompleteness,
   assertSnapshotForDisplay,

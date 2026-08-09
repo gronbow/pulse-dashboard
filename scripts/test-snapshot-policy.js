@@ -36,6 +36,14 @@ assert.doesNotThrow(() => assertSnapshotForPublication(copy(base), { now }));
 assert.equal(summarizeSnapshotCoverage(base).healthSignals, 4);
 assert.equal(summarizeSnapshotCoverage(base).subjectiveComplete, false);
 
+const objectiveOnly = copy(base);
+delete objectiveOnly.insight;
+assert.doesNotThrow(() => assertSnapshotForPublication(objectiveOnly, { now }));
+
+const corruptInsight = copy(base);
+corruptInsight.insight = { text: '????????????????', tags: ['????'] };
+assert.doesNotThrow(() => assertSnapshotForDisplay(corruptInsight));
+
 const ready = copy(base);
 ready.readiness = {
   status: 'ready',
@@ -86,6 +94,17 @@ assert.throws(() => assertSnapshotForPublication(future, { now }), /future/);
 const futureMetric = copy(base);
 futureMetric.health.sleep.date = '2026-08-09';
 assert.throws(() => assertSnapshotForPublication(futureMetric, { now }), /future metric date/);
+
+const timezoneMidnight = copy(base);
+timezoneMidnight.meta.asOf = '2026-08-07T16:30:00Z';
+timezoneMidnight.meta.lastUpdated = '2026-08-07T16:31:00Z';
+assert.doesNotThrow(() => assertSnapshotForPublication(timezoneMidnight, {
+  now: Date.parse('2026-08-07T16:35:00Z')
+}));
+
+const invalidTimezone = copy(base);
+invalidTimezone.meta.timezone = 'Not/A_Timezone';
+assert.throws(() => assertSnapshotForDisplay(invalidTimezone), /valid IANA timezone/);
 
 const tooManyActivities = copy(base);
 tooManyActivities.todayActivities = Array.from({ length: 33 }, () => ({ sport: '跑步', durationSeconds: 60 }));

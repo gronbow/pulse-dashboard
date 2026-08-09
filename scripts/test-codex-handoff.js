@@ -113,9 +113,10 @@ server.listen(0, '127.0.0.1', async () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ ...payload, insight: { text: '????????', tags: ['????'] } })
     }));
-    assert.equal(corrupted.status, 400);
+    assert.equal(corrupted.status, 201);
     const afterCorruption = await (await fetch(`${base}/api/snapshot`, authorized())).json();
-    assert.equal(afterCorruption.insight.text, payload.insight.text);
+    assert.equal(afterCorruption.health.sleep.score, payload.health.sleep.score);
+    assert.equal(afterCorruption.insight.text, '');
 
     const incomplete = await fetch(`${base}/api/snapshot`, authorized({
       method: 'POST',
@@ -135,7 +136,7 @@ server.listen(0, '127.0.0.1', async () => {
       body: JSON.stringify(payload)
     }));
     assert.equal(wrongContentType.status, 415);
-    assert.equal(updateEvents, 1);
+    assert.equal(updateEvents, 2);
 
     const browserOrigin = await fetch(`${base}/api/snapshot`, authorized({
       method: 'POST',
@@ -143,10 +144,10 @@ server.listen(0, '127.0.0.1', async () => {
       body: JSON.stringify(payload)
     }));
     assert.equal(browserOrigin.status, 403);
-    assert.equal(updateEvents, 1);
+    assert.equal(updateEvents, 2);
 
     const insight = await (await fetch(`${base}/api/insight`, authorized({ method: 'POST' }))).json();
-    assert.equal(insight.text, payload.insight.text);
+    assert.equal(insight.text, 'Codex 快照暂未包含训练洞察。');
 
     server.clearSnapshot();
     assert.equal(clearEvents, 1);

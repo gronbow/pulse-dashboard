@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const {
   SNAPSHOT_VERSION,
   createUnavailableSnapshot,
+  normalizeInsight,
   normalizeSnapshot,
   resolveFallbackSnapshot
 } = require('../src/snapshot');
@@ -60,6 +61,7 @@ assert.deepEqual(normalized.trends.trainingLoad, [
   { date: '2026-07-27', shortTerm: 71, longTerm: 66, ratio: 1.07, comment: 'Optimized' }
 ]);
 assert.equal(normalized.todayActivities[0].sport, '<script>');
+assert.deepEqual(normalizeInsight({ text: '????????????????', tags: ['????'] }), { text: '', tags: [] });
 
 const unavailable = createUnavailableSnapshot({
   provider: 'codex-coros-mcp',
@@ -76,12 +78,76 @@ assert.equal(unavailable.trends.trainingLoad.length, 0);
 assert.match(unavailable.insight.text, /尚未收到真实 COROS 快照/);
 
 const matchingCache = resolveFallbackSnapshot({
-  meta: { provider: 'codex-coros-mcp', timezone: 'Asia/Shanghai' },
-  health: { restingHeartRate: { value: 52 } },
-  todayActivities: []
-}, { provider: 'codex-coros-mcp', error: 'offline' });
+  meta: {
+    source: 'bridge',
+    provider: 'codex-coros-mcp',
+    asOf: '2026-08-08T08:45:00Z',
+    lastUpdated: '2026-08-08T08:50:00Z',
+    timezone: 'Asia/Shanghai'
+  },
+  health: {
+    restingHeartRate: { value: 52, date: '2026-08-08' },
+    sleep: { durationMinutes: 420, date: '2026-08-08' }
+  },
+  todayActivities: [],
+  readiness: {
+    status: 'ready',
+    confidence: 'high',
+    recommendationLevel: 'hard',
+    reasons: ['测试缓存原本声称可以进行高强度训练'],
+    subjective: {
+      collectedAt: '2026-08-08T08:40:00Z',
+      fatigue: 2,
+      soreness: 1,
+      pain: false,
+      illness: false,
+      chestSymptoms: false,
+      dizziness: false
+    }
+  }
+}, { provider: 'codex-coros-mcp', error: 'offline', now: Date.parse('2026-08-08T09:00:00Z') });
 assert.equal(matchingCache.meta.source, 'cache');
 assert.equal(matchingCache.health.restingHeartRate.value, 52);
+assert.equal(matchingCache.readiness.status, 'data_insufficient');
+assert.equal(matchingCache.readiness.recommendationLevel, 'informational');
+
+const freshReadyInput = {
+  ...matchingCache,
+  meta: { ...matchingCache.meta, source: 'bridge' },
+  readiness: {
+    status: 'ready',
+    confidence: 'high',
+    recommendationLevel: 'moderate',
+    reasons: ['客观信号稳定且已经完成当前安全确认'],
+    subjective: {
+      collectedAt: '2026-08-08T08:40:00Z',
+      fatigue: 2,
+      soreness: 1,
+      pain: false,
+      illness: false,
+      chestSymptoms: false,
+      dizziness: false
+    }
+  }
+};
+const freshReady = normalizeSnapshot(freshReadyInput, {}, { now: Date.parse('2026-08-08T09:00:00Z') });
+assert.equal(freshReady.readiness.status, 'ready');
+
+const staleReady = normalizeSnapshot(freshReadyInput, {}, { now: Date.parse('2026-08-10T09:00:00Z') });
+assert.equal(staleReady.readiness.status, 'data_insufficient');
+assert.match(staleReady.readiness.reasons.join(' '), /过期/);
+
+const forgedCustomReady = normalizeSnapshot(freshReadyInput, { provider: 'custom-http-bridge' }, {
+  now: Date.parse('2026-08-08T09:00:00Z')
+});
+assert.equal(forgedCustomReady.readiness.status, 'data_insufficient');
+assert.equal(forgedCustomReady.readiness.confidence, 'low');
+
+const forgedMissingSubjective = normalizeSnapshot({
+  ...freshReadyInput,
+  readiness: { ...freshReadyInput.readiness, subjective: {} }
+}, {}, { now: Date.parse('2026-08-08T09:00:00Z') });
+assert.equal(forgedMissingSubjective.readiness.status, 'data_insufficient');
 
 const mismatchedCache = resolveFallbackSnapshot({
   meta: { provider: 'mcp-bridge', timezone: 'Asia/Shanghai' },
