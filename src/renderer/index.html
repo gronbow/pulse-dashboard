@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none';" />
     <link rel="stylesheet" href="styles.css" />
     <title>Pulse Dashboard</title>
   </head>
@@ -177,7 +177,7 @@
           </select>
         </label>
         <label id="bridge-url-row">本地数据桥接地址 <input id="bridge-url" type="url" placeholder="http://127.0.0.1:19090" /></label>
-        <p id="bridge-help" class="muted tiny">自定义 bridge 需要提供 <code>/api/snapshot</code> 与 <code>/api/insight</code>。</p>
+        <p id="bridge-help" class="muted tiny">开发选项：自定义 bridge 只读取本机 <code>/api/snapshot</code>，不发送快照生成洞察，也不信任其训练强度结论。请勿用于共享电脑或不可信服务。</p>
         <p id="codex-handoff-help" class="muted tiny" hidden>Pulse 会静默监听本机 Handoff；Codex 插件发布完整快照后，窗口会自动更新。该过程不会让 Electron 直接取得 COROS 权限。</p>
         <label>自动读取间隔
           <select id="refresh-interval"><option value="1">1 分钟</option><option value="5">5 分钟</option><option value="15">15 分钟</option><option value="30">30 分钟</option><option value="60">60 分钟</option></select>

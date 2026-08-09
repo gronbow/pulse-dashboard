@@ -7,6 +7,8 @@ const packagePath = path.join(root, 'package.json');
 const iconPath = path.join(root, 'build', 'icon.ico');
 const trayPngPath = path.join(root, 'build', 'tray-icon.png');
 const mainSource = fs.readFileSync(path.join(root, 'src', 'main.js'), 'utf8');
+const preloadSource = fs.readFileSync(path.join(root, 'src', 'preload.js'), 'utf8');
+const rendererHtml = fs.readFileSync(path.join(root, 'src', 'renderer', 'index.html'), 'utf8');
 
 function fail(message) {
   console.error(`Validation failed: ${message}`);
@@ -52,8 +54,30 @@ try {
   if (!extraResources.some(({ from, to }) => from === 'build/tray-icon.png' && to === 'pulse-tray.png')) {
     fail('packaged app must include the PNG tray fallback resource');
   }
+  const fuses = pkg.build?.electronFuses || {};
+  for (const key of [
+    'runAsNode',
+    'enableNodeOptionsEnvironmentVariable',
+    'enableNodeCliInspectArguments',
+    'grantFileProtocolExtraPrivileges'
+  ]) {
+    if (fuses[key] !== false) fail(`Electron fuse ${key} must be disabled`);
+  }
+  for (const key of ['enableCookieEncryption', 'enableEmbeddedAsarIntegrityValidation', 'onlyLoadAppFromAsar']) {
+    if (fuses[key] !== true) fail(`Electron fuse ${key} must be enabled`);
+  }
 } catch (error) {
   fail(`cannot parse ${packagePath}: ${error.message}`);
+}
+
+if (!mainSource.includes('setPermissionRequestHandler') || !mainSource.includes('setPermissionCheckHandler')) {
+  fail('Electron session permissions must default to denied');
+}
+if (/ipcRenderer\.on\([^\n]+,\s*handler\)/.test(preloadSource)) {
+  fail('preload event subscriptions must not expose IpcRendererEvent to the renderer');
+}
+if (rendererHtml.includes("style-src 'self' 'unsafe-inline'")) {
+  fail('renderer CSP must not allow inline styles');
 }
 
 for (const [label, filePath, header] of [

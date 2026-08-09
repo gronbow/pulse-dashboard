@@ -17,6 +17,16 @@
     "appId": "app.pulse.dashboard",
     "artifactName": "Pulse-Dashboard-Setup-${version}-${arch}.${ext}",
     "asar": true,
+    "electronFuses": {
+      "runAsNode": false,
+      "enableCookieEncryption": true,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true,
+      "loadBrowserProcessSpecificV8Snapshot": false,
+      "grantFileProtocolExtraPrivileges": false
+    },
     "electronDist": "node_modules/electron/dist",
     "directories": {
       "buildResources": "build",
@@ -82,7 +92,7 @@
     "test:public-plugin": "node scripts/test-public-plugin.js",
     "test:tray": "node scripts/test-tray-icon.js",
     "test:window-icon": "node scripts/test-window-icon.js",
-    "test:packaged": "node scripts/test-tray-icon.js --packaged && node scripts/test-window-icon.js --packaged",
+    "test:packaged": "node scripts/test-tray-icon.js --packaged && node scripts/test-window-icon.js --packaged && node scripts/test-electron-fuses.js",
     "test:history-audit-cli": "node scripts/test-audit-git-history.js",
     "test:release-contract": "node scripts/test-release-contract.js",
     "test:desktop": "node scripts/test-electron-smoke.js",
@@ -98,6 +108,7 @@
     "dist:win": "electron-builder --win nsis --x64"
   },
   "devDependencies": {
+    "@electron/fuses": "^1.8.0",
     "electron": "^43.3.0",
     "electron-builder": "^26.15.3"
   }

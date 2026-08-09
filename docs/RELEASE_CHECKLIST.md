@@ -9,7 +9,7 @@
 - [ ] `npm run test:desktop` 生成真实 Electron 窗口截图，标题栏、圆角卡片和内置滚动条无回归。
 - [ ] `npm run test:compact-mode` 生成 16:9、4:3、21:9 三种简洁小组件截图，检查四项数据的尺寸、对齐和长文本不截断。
 - [ ] `npm run test:tray` 与 `npm run test:window-icon` 在开发态通过。
-- [ ] 构建后运行 `npm run test:packaged`，确认解包版随包图标、托盘、窗口身份与 `AppUserModelID`。
+- [ ] 构建后运行 `npm run test:packaged`，确认解包版随包图标、托盘、窗口身份、`AppUserModelID` 与 Electron Fuse 状态。
 - [ ] `npm run test:release-contract` 断言 Desktop、两份插件清单、Handoff 协议和公开安装标签一致。
 - [ ] `npm run test:secondary-health` 使用动态当前时间断言压力卡片与旧快照血氧回退。
 - [ ] `npm run test:unavailable` 断言无真实快照/同源缓存时不显示任何 Demo 健康数值。
@@ -31,6 +31,7 @@
 - [ ] Git 未跟踪 `.fit`、训练计划、真实快照、坐标、活动 ID、令牌、日志或本地截图。
 - [ ] 打包白名单只包含 `src`、Codex Handoff、最小 Handoff 身份辅助脚本、`package.json` 和 `LICENSE`。
 - [ ] 安装版快照使用 Windows 系统加密能力保存，不存在明文回退；设置中的 1 / 7 / 30 天留存与一键清除经过验证。
+- [ ] 无法验证的旧版明文快照不会被读取，并向用户提供“保留/删除”选择；自定义 Bridge 不接收完整快照 POST。
 - [ ] 演示快照为合成数据。
 - [ ] README 预览图来自合成演示数据，不包含桌面背景或真实健康信息。
 - [ ] 在实际待推送分支上运行 `npm run audit:history` 并通过。
