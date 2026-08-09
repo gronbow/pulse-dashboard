@@ -7,6 +7,7 @@
 - [ ] `npm run audit:dependencies` 通过；完整依赖树不得有已知高危漏洞。
 - [ ] `npm run audit:production` 通过；只打包的运行时依赖不得有已知高危漏洞。
 - [ ] `npm run test:desktop` 生成真实 Electron 窗口截图，标题栏、圆角卡片和内置滚动条无回归。
+- [ ] `npm run test:workflows` 断言所有外部 Action 固定到完整提交，并包含依赖审查、SBOM、校验和与证明步骤。
 - [ ] `npm run test:ui-contract` 检查深浅主题核心文字达到 WCAG AA 对比度、SVG 图标、键盘焦点、状态播报和背景层透明度。
 - [ ] `npm run test:compact-mode` 分别以 100%、125%、150% 缩放生成 16:9、4:3、21:9 小组件截图，检查尺寸、字号、对齐和横向溢出。
 - [ ] `npm run test:ui-layout` 以 150% 缩放检查浅色主题和长文本，并人工确认窗口位置/尺寸恢复后仍位于当前显示器工作区。
@@ -21,9 +22,10 @@
 - [ ] 系统托盘与任务栏人工显示 Pulse 标志，而不是空白占位框或 Electron 默认原子图标。
 - [ ] `npm run pack:win` 成功，解包目录中只含桌面运行所需文件。
 - [ ] `npm run dist:win` 成功生成 Windows x64 测试安装包。
+- [ ] 手动 Release Candidate 工作流上传安装包、blockmap、`SHA256SUMS.txt` 与 SPDX JSON，并为安装包生成构建来源和 SBOM 证明。
 - [ ] 安装包为测试用途；未完成代码签名时明确提示 Windows 可能显示未知发布者警告。
 
-完整依赖树和打包运行时必须分别通过 `audit:dependencies` 与 `audit:production`。不再接受“漏洞仅位于开发依赖”作为发布豁免；如审计失败，应优先采用锁文件内的兼容补丁升级，并在升级后重跑完整测试，禁止未经审查使用 `npm audit fix --force`。
+锁文件中的完整依赖集合和省略开发依赖的口径必须分别通过 `audit:dependencies` 与 `audit:production`。两项都使用 `--package-lock-only`，避免本机半安装依赖树改变审计结果。不再接受“漏洞仅位于开发依赖”作为发布豁免；如审计失败，应优先采用锁文件内的兼容补丁升级，并在升级后重跑完整测试，禁止未经审查使用 `npm audit fix --force`。
 
 最终 v0.5.5 解包版在当前 Windows 机器的 5 秒采样中约占 0.31% 单核（整机约 0.022%），但 Electron 四进程总工作集约为 404 MB，高于原始 150 MB 目标。测试版发布说明必须披露该差距，不能宣称已达到轻量内存指标。
 
@@ -62,4 +64,8 @@
 - [ ] 用户确认仓库名称、可见性和 GitHub 账号。
 - [ ] 用户确认允许创建远程仓库并上传干净公开分支。
 - [ ] CI、Issue 模板、PR 隐私检查和手动 Windows Release Candidate 工作流存在。
+- [ ] `main` 要求 PR、`test` 状态通过和讨论已解决，禁止强推/删除且管理员不能绕过。
+- [ ] GitHub Vulnerability Alerts、Dependabot Security Updates 与 Private Vulnerability Reporting 已启用。
+- [ ] Dependabot 同时监控 npm 与 GitHub Actions；所有自动更新仍须通过 PR 质量门。
+- [ ] 从目标远程提交新建干净目录执行 `npm ci`、`npm run test:ci` 和构建，避免本地未跟踪文件影响发布产物。
 - [ ] 上传后再次检查默认分支、Release 资产和仓库文件，不发布本地健康数据。

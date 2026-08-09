@@ -7,6 +7,7 @@ Describe the user-visible change and why it belongs in Pulse.
 - [ ] `npm test`
 - [ ] `npm run audit:history`
 - [ ] UI changes: `npm run test:desktop`
+- [ ] Workflow changes: `npm run test:workflows`
 - [ ] Release changes: run `npm run test:ci`, build, then run `npm run test:packaged`
 
 ## Privacy

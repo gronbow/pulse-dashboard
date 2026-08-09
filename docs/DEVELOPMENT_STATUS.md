@@ -21,6 +21,7 @@
 | 指标时效 | 睡眠、静息心率、HRV 等支持独立数据日期；当天尚未归档时显示最近有效值及其日期。 |
 | 验证 | 演示 Bridge、快照、适配器、Codex Handoff、发布脚本、隐私审计、真实 Electron 截图、压力/血氧渲染断言，以及解包版托盘与窗口原生图像检查均纳入本地验证；新增 WCAG AA 核心配色、键盘焦点、长文本和 100%/125%/150% 缩放布局门。 |
 | 分发准备 | Windows 打包配置、应用图标、严格包内容白名单、CI、Issue/PR 模板、合成预览图和发布检查清单已加入；v0.5.5 已加入三种简洁小组件截图，完成隔离目录静默安装/卸载演练，并发布 GitHub Pre-release。 |
+| 供应链 | v0.5.6 候选固定所有 GitHub Actions 提交，加入 npm/Actions Dependabot、PR 依赖审查、SPDX SBOM、SHA-256 和 GitHub 构建/SBOM 证明；GitHub 已开启漏洞告警、安全更新、私密漏洞报告及 `main` 分支保护。 |
 | 产品边界 | Pulse 不开发 COROS OAuth、Token 管理或供应商 API 直连；这些职责属于 LLM Host。 |
 
 ## 已知测试版限制
@@ -39,6 +40,7 @@
 2. 在另一台测试机执行交互式安装 / 升级 / 卸载；本机已完成隔离静默安装/卸载，并实际确认任务栏显示 Pulse 图标。
 3. 用连续多日真实 COROS 数据复测训练、健康、计划和七日负荷字段。
 4. 在另一台 Windows 设备完成安装、升级、卸载和实际系统 DPI 目视复测；仓库内自动化已覆盖 100%、125% 和 150% 渲染比例。
+5. 仅在 PR #6–#10 按顺序审查合并后运行手动 Release Candidate；未完成代码签名前继续标记为 unsigned beta。
 
 ## 相关文档
 
@@ -53,4 +55,6 @@
 - [v0.5.4 发布候选审计](V0.5.4_RELEASE_AUDIT.md)
 - [v0.5.5 简洁小组件发布说明](RELEASE_NOTES_V0.5.5_BETA.md)
 - [v0.5.5 发布候选审计](V0.5.5_RELEASE_AUDIT.md)
+- [v0.5.6 候选变化](RELEASE_NOTES_V0.5.6_CANDIDATE.md)
+- [供应链与发布产物](SUPPLY_CHAIN.md)
 - [原始需求追踪矩阵](REQUIREMENTS_TRACEABILITY.md)
