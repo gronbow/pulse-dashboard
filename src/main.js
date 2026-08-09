@@ -5,7 +5,7 @@ const path = require('node:path');
 const http = require('node:http');
 const https = require('node:https');
 const { pathToFileURL, URL } = require('node:url');
-const { normalizeSnapshot, resolveFallbackSnapshot } = require('./snapshot');
+const { normalizeInsight, normalizeSnapshot, resolveFallbackSnapshot } = require('./snapshot');
 const { createDataSourceAdapter } = require('./adapters/data-source-adapter');
 const { CODEX_HANDOFF_PORT, CODEX_HANDOFF_URL, createCodexHandoffServer } = require('../bridge/codex-handoff-server');
 const {
@@ -363,7 +363,8 @@ async function generateInsight(snapshot) {
   if (config.dataSource !== 'demo' && resolveBridgeUrl(config)) {
     try {
       const result = await createHttpBridgeAdapter(config).generateInsight(safeSnapshot);
-      if (result && result.text) return { text: result.text, source: 'bridge' };
+      const insight = normalizeInsight(result);
+      if (insight.text) return { ...insight, source: 'bridge' };
     } catch {
       // The cached/local insight below is the intentional offline fallback.
     }

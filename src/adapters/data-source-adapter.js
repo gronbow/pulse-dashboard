@@ -1,4 +1,5 @@
 const { normalizeSnapshot } = require('../snapshot');
+const { assertSnapshotForDisplay } = require('../../scripts/snapshot-policy');
 
 const ADAPTER_PROTOCOL_VERSION = 1;
 
@@ -14,7 +15,11 @@ function createDataSourceAdapter({ id, label, provider = 'generic', fetchSnapsho
     throw new TypeError('data source adapter requires id, label, and fetchSnapshot');
   }
 
-  const readSnapshot = async (context) => normalizeSnapshot(assertSnapshotPayload(await fetchSnapshot(context)), { provider });
+  const readSnapshot = async (context) => {
+    const raw = assertSnapshotPayload(await fetchSnapshot(context));
+    assertSnapshotForDisplay(raw);
+    return normalizeSnapshot(raw, { provider });
+  };
   const adapter = {
     protocolVersion: ADAPTER_PROTOCOL_VERSION,
     id,
@@ -25,7 +30,10 @@ function createDataSourceAdapter({ id, label, provider = 'generic', fetchSnapsho
     fetchTrainingData: readSnapshot,
     fetchPlan: readSnapshot,
     generateInsight: typeof generateInsight === 'function'
-      ? (snapshot, context) => generateInsight(normalizeSnapshot(snapshot, { provider }), context)
+      ? (snapshot, context) => {
+        assertSnapshotForDisplay(assertSnapshotPayload(snapshot));
+        return generateInsight(normalizeSnapshot(snapshot, { provider }), context);
+      }
       : null
   };
   return Object.freeze(adapter);

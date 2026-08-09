@@ -1,5 +1,11 @@
 const SNAPSHOT_VERSION = 2;
-const { countHealthSignals } = require('../scripts/snapshot-policy');
+const {
+  FUTURE_TOLERANCE_MINUTES,
+  MAX_SNAPSHOT_AGE_HOURS,
+  assertSnapshotForDisplay,
+  countHealthSignals,
+  hasEncodingCorruption
+} = require('../scripts/snapshot-policy');
 
 function finiteNumber(value, fallback = null, minimum = -Infinity, maximum = Infinity) {
   if (value == null || value === '') return fallback;
@@ -73,6 +79,16 @@ function booleanOrNull(value) {
   return typeof value === 'boolean' ? value : null;
 }
 
+function normalizeInsight(value) {
+  const raw = value && typeof value === 'object' ? value : {};
+  const insightText = text(raw.text, '');
+  if (insightText.length < 8 || hasEncodingCorruption(insightText)) return { text: '', tags: [] };
+  const tags = Array.isArray(raw.tags)
+    ? raw.tags.map((tag) => text(tag)).filter((tag) => tag && !hasEncodingCorruption(tag)).slice(0, 8)
+    : [];
+  return { text: insightText, tags };
+}
+
 function normalizeReadiness(value) {
   const raw = value && typeof value === 'object' ? value : {};
   const subjective = raw.subjective && typeof raw.subjective === 'object' ? raw.subjective : {};
@@ -96,6 +112,59 @@ function normalizeReadiness(value) {
   };
 }
 
+function effectiveReadiness(snapshot, now = Date.now()) {
+  const readiness = snapshot.readiness;
+  const subjective = readiness.subjective;
+  const urgent = subjective.pain === true || subjective.chestSymptoms === true || subjective.dizziness === true;
+  const downgrade = (reason, recommendationLevel = 'informational') => ({
+    ...readiness,
+    status: 'data_insufficient',
+    confidence: 'low',
+    recommendationLevel,
+    reasons: [reason, ...readiness.reasons].filter((value, index, all) => value && all.indexOf(value) === index).slice(0, 6)
+  });
+
+  if (urgent) {
+    return {
+      ...readiness,
+      status: 'stop_refer',
+      confidence: 'low',
+      recommendationLevel: 'rest',
+      reasons: ['出现疼痛、胸部症状或头晕，安全优先并停止训练建议', ...readiness.reasons]
+        .filter((value, index, all) => value && all.indexOf(value) === index)
+        .slice(0, 6)
+    };
+  }
+  if (readiness.status === 'stop_refer') return downgrade('停止训练状态缺少当前明确安全信号，不能作为即时判断');
+  if (readiness.status !== 'ready') {
+    return downgrade(
+      readiness.reasons[0] || '尚未完成当前主观疲劳与安全确认',
+      readiness.recommendationLevel === 'rest' ? 'rest' : 'informational'
+    );
+  }
+  if (snapshot.meta.source !== 'bridge' || snapshot.meta.provider !== 'codex-coros-mcp') {
+    return downgrade('缓存、演示或自定义数据源不用于给出训练强度建议');
+  }
+  const snapshotTime = Date.parse(snapshot.meta.lastUpdated || snapshot.meta.asOf || '');
+  const collectedAt = Date.parse(subjective.collectedAt || '');
+  const maximumAge = MAX_SNAPSHOT_AGE_HOURS * 3_600_000;
+  const futureTolerance = FUTURE_TOLERANCE_MINUTES * 60_000;
+  if (
+    !Number.isFinite(snapshotTime)
+    || !Number.isFinite(collectedAt)
+    || now - snapshotTime > maximumAge
+    || now - collectedAt > maximumAge
+    || snapshotTime > now + futureTolerance
+    || collectedAt > now + futureTolerance
+  ) {
+    return downgrade('快照或主观状态已过期，需重新确认后再给出训练强度');
+  }
+  if (!readiness.coverage.subjectiveComplete || subjective.illness === true) {
+    return downgrade('主观疲劳、酸痛、疾病与安全状态尚未完整确认');
+  }
+  return readiness;
+}
+
 function normalizeActivity(activity) {
   if (!activity || typeof activity !== 'object') return null;
   const distanceKm = finiteNumber(activity.distanceKm, 0, 0, 1000);
@@ -116,7 +185,7 @@ function normalizeActivity(activity) {
   };
 }
 
-function normalizeSnapshot(input, metaOverrides = {}) {
+function normalizeSnapshot(input, metaOverrides = {}, { now = Date.now() } = {}) {
   const raw = input && typeof input === 'object' ? input : {};
   const rawHealth = raw.health && typeof raw.health === 'object' ? raw.health : {};
   const rawSleep = rawHealth.sleep && typeof rawHealth.sleep === 'object' ? rawHealth.sleep : {};
@@ -130,15 +199,15 @@ function normalizeSnapshot(input, metaOverrides = {}) {
   const rawLoad = raw.load && typeof raw.load === 'object' ? raw.load : {};
   const rawTrends = raw.trends && typeof raw.trends === 'object' ? raw.trends : {};
   const rawInsight = raw.insight && typeof raw.insight === 'object' ? raw.insight : {};
-  const now = new Date().toISOString();
+  const nowIso = new Date(now).toISOString();
 
   const normalized = {
     version: SNAPSHOT_VERSION,
     meta: {
       source: text(metaOverrides.source || raw.meta?.source, 'demo'),
       provider: text(metaOverrides.provider || raw.meta?.provider, 'unknown'),
-      asOf: validDate(raw.meta?.asOf, now),
-      lastUpdated: validDate(raw.meta?.lastUpdated, now),
+      asOf: validDate(raw.meta?.asOf, nowIso),
+      lastUpdated: validDate(raw.meta?.lastUpdated, nowIso),
       timezone: text(raw.meta?.timezone, 'Asia/Shanghai'),
       ...(metaOverrides.error ? { error: text(metaOverrides.error) } : {})
     },
@@ -203,10 +272,7 @@ function normalizeSnapshot(input, metaOverrides = {}) {
       sleepScore: listOfNumbers(rawTrends.sleepScore),
       trainingLoad: listOfTrainingLoad(rawTrends.trainingLoad)
     },
-    insight: {
-      text: text(rawInsight.text, ''),
-      tags: Array.isArray(rawInsight.tags) ? rawInsight.tags.map((tag) => text(tag)).filter(Boolean).slice(0, 8) : []
-    },
+    insight: normalizeInsight(rawInsight),
     readiness: normalizeReadiness(raw.readiness)
   };
   const subjective = normalized.readiness.subjective;
@@ -222,6 +288,7 @@ function normalizeSnapshot(input, metaOverrides = {}) {
       && subjective.dizziness !== null
     )
   };
+  normalized.readiness = effectiveReadiness(normalized, now);
   return normalized;
 }
 
@@ -268,10 +335,16 @@ function createUnavailableSnapshot({
 function resolveFallbackSnapshot(cached, {
   provider = 'unknown',
   timezone = 'Asia/Shanghai',
-  error = ''
+  error = '',
+  now = Date.now()
 } = {}) {
   if (cached?.meta?.provider === provider) {
-    return normalizeSnapshot(cached, { source: 'cache', provider, ...(error ? { error } : {}) });
+    try {
+      assertSnapshotForDisplay(cached);
+      return normalizeSnapshot(cached, { source: 'cache', provider, ...(error ? { error } : {}) }, { now });
+    } catch {
+      return createUnavailableSnapshot({ provider, timezone, error: error || '本机缓存未通过完整性校验' });
+    }
   }
   return createUnavailableSnapshot({ provider, timezone, error });
 }
@@ -279,7 +352,9 @@ function resolveFallbackSnapshot(cached, {
 module.exports = {
   SNAPSHOT_VERSION,
   createUnavailableSnapshot,
+  effectiveReadiness,
   normalizeDateKey,
+  normalizeInsight,
   normalizeSnapshot,
   resolveFallbackSnapshot
 };
