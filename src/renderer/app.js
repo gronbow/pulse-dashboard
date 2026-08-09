@@ -83,6 +83,9 @@ function applyTheme() {
 function applyDisplayMode() {
   document.body.classList.toggle('compact', Boolean(config.compactMode));
   document.body.dataset.compactRatio = config.compactAspectRatio || '16:9';
+  const opacity = Math.max(40, Math.min(100, Number(config.opacity || 96))) / 100;
+  document.documentElement.style.setProperty('--surface-alpha', String(opacity));
+  document.documentElement.style.setProperty('--panel-alpha', String(0.35 + (opacity * 0.65)));
 }
 
 function compactSourceLabel(source, meta, isStaleCodex) {
@@ -96,30 +99,42 @@ function compactSourceLabel(source, meta, isStaleCodex) {
 
 function renderBars(selector, values, invert = false) {
   const el = $(selector);
+  el.replaceChildren();
   if (!Array.isArray(values) || !values.length) {
-    el.innerHTML = '<span class="trend-empty">暂无七日数据</span>';
+    const empty = document.createElement('span');
+    empty.className = 'trend-empty';
+    empty.textContent = '暂无七日数据';
+    el.append(empty);
     return;
   }
   const min = Math.min(...values);
   const max = Math.max(...values);
-  el.innerHTML = values.map((value) => {
+  for (const value of values) {
     const height = max === min ? 55 : 26 + ((value - min) / (max - min)) * 64;
     const normalized = invert ? 100 - height : height;
-    return `<span class="bar" style="height:${Math.max(20, normalized)}%" title="${value}"></span>`;
-  }).join('');
+    const bar = document.createElement('span');
+    bar.className = 'bar';
+    bar.style.height = `${Math.max(20, normalized)}%`;
+    bar.title = String(value);
+    el.append(bar);
+  }
 }
 
 function renderLoadBars(entries) {
   const el = $('#load-bars');
+  el.replaceChildren();
   const points = Array.isArray(entries)
     ? entries.filter((entry) => Number.isFinite(Number(entry?.shortTerm))).slice(-7)
     : [];
   if (!points.length) {
-    el.innerHTML = '<span class="trend-empty">暂无七日负荷</span>';
+    const empty = document.createElement('span');
+    empty.className = 'trend-empty';
+    empty.textContent = '暂无七日负荷';
+    el.append(empty);
     return;
   }
   const max = Math.max(...points.map((entry) => Number(entry.shortTerm)), 1);
-  el.innerHTML = points.map((entry) => {
+  for (const entry of points) {
     const height = 8 + (Number(entry.shortTerm) / max) * 24;
     const dateLabel = String(entry.date || '').slice(-2).replace(/^0/, '') || '—';
     const detail = [
@@ -128,8 +143,18 @@ function renderLoadBars(entries) {
       entry.longTerm == null ? '' : `长期 ${entry.longTerm}`,
       entry.ratio == null ? '' : `比值 ${entry.ratio}`
     ].filter(Boolean).join(' · ');
-    return `<span class="load-day" title="${escapeHtml(detail)}"><span class="bar" style="height:${height}px"></span><span class="load-day-label">${escapeHtml(dateLabel)}</span></span>`;
-  }).join('');
+    const day = document.createElement('span');
+    day.className = 'load-day';
+    day.title = detail;
+    const bar = document.createElement('span');
+    bar.className = 'bar';
+    bar.style.height = `${height}px`;
+    const label = document.createElement('span');
+    label.className = 'load-day-label';
+    label.textContent = dateLabel;
+    day.append(bar, label);
+    el.append(day);
+  }
 }
 
 function render(snapshotData) {
@@ -207,8 +232,9 @@ function render(snapshotData) {
     ? (todayActivities.some((a) => a.status === 'completed') ? '已完成' : '有安排')
     : isPlannedRestDay ? '休息日' : '暂无记录');
   $('#training-empty').hidden = Boolean(todayActivities.length);
+  $('#training-footer').hidden = !todayActivities.length;
   $('#activity-list').innerHTML = todayActivities.map((activity) => `<div class="activity-row">
-    <div class="activity-icon">↗</div><div class="activity-main"><div class="activity-name">${escapeHtml(activity.sport || '运动')}</div><div class="activity-sub">${formatDuration(activity.durationSeconds)}${activity.paceSecondsPerKm ? ` · ${formatPace(activity.paceSecondsPerKm)}` : ''} · ${escapeHtml(activity.heartRate ?? '—')} bpm · ${escapeHtml(activity.calories ?? '—')} kcal</div></div><div class="activity-distance">${Number(activity.distanceKm) > 0 ? `${Number(activity.distanceKm).toFixed(2)}<span class="muted tiny"> km</span>` : '—'}</div>
+    <div class="activity-icon"><svg class="metric-svg" aria-hidden="true"><use href="#icon-arrow"></use></svg></div><div class="activity-main"><div class="activity-name">${escapeHtml(activity.sport || '运动')}</div><div class="activity-sub">${formatDuration(activity.durationSeconds)}${activity.paceSecondsPerKm ? ` · ${formatPace(activity.paceSecondsPerKm)}` : ''} · ${escapeHtml(activity.heartRate ?? '—')} bpm · ${escapeHtml(activity.calories ?? '—')} kcal</div></div><div class="activity-distance">${Number(activity.distanceKm) > 0 ? `${Number(activity.distanceKm).toFixed(2)}<span class="muted tiny"> km</span>` : '—'}</div>
   </div>`).join('');
   setText('#total-distance', totalDistance > 0 ? `${totalDistance.toFixed(2)} km` : '—');
   setText('#total-duration', todayActivities.length ? formatDuration(totalSeconds) : '—');
@@ -255,7 +281,7 @@ function render(snapshotData) {
   const hasStress = health.stress?.value != null;
   const secondaryIcon = $('#secondary-health-icon');
   secondaryIcon.className = `metric-icon ${hasStress ? 'stress-icon' : 'spo2-icon'}`;
-  setText('#secondary-health-icon', hasStress ? '≈' : 'O₂');
+  $('#secondary-health-use').setAttribute('href', hasStress ? '#icon-stress' : '#icon-oxygen');
   setText('#secondary-health-label', hasStress ? '日均压力' : '血氧');
   setText('#secondary-health-value', hasStress
     ? String(health.stress.value)
@@ -299,6 +325,7 @@ function render(snapshotData) {
 async function refresh() {
   const buttons = ['#refresh-button', '#compact-refresh-button'].map((selector) => $(selector)).filter(Boolean);
   buttons.forEach((button) => { button.disabled = true; });
+  document.body.setAttribute('aria-busy', 'true');
   setText('#refresh-label', '读取中');
   try {
     render(await window.pulseDesktop.getSnapshot());
@@ -307,6 +334,7 @@ async function refresh() {
     setText('#error-banner', `看板加载失败：${error.message}`);
   } finally {
     buttons.forEach((button) => { button.disabled = false; });
+    document.body.removeAttribute('aria-busy');
     setText('#refresh-label', '读取同步');
   }
 }
@@ -400,6 +428,11 @@ async function saveSettings(event) {
   await refresh();
 }
 
+function closeSettings() {
+  const dialog = $('#settings-dialog');
+  if (dialog.open) dialog.close('cancel');
+}
+
 async function clearLocalData() {
   const button = $('#clear-local-data-button');
   button.disabled = true;
@@ -423,6 +456,8 @@ $('#compact-refresh-button').addEventListener('click', refresh);
 $('#compact-settings-button').addEventListener('click', openSettings);
 $('#compact-hide-button').addEventListener('click', () => window.pulseDesktop.hide());
 $('#settings-form').addEventListener('submit', saveSettings);
+$('#close-settings-button').addEventListener('click', closeSettings);
+$('#cancel-settings-button').addEventListener('click', closeSettings);
 $('#test-bridge-button').addEventListener('click', testBridge);
 $('#clear-local-data-button').addEventListener('click', clearLocalData);
 $('#data-source').addEventListener('change', updateDataSourceControls);

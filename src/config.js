@@ -14,7 +14,8 @@ const DEFAULT_CONFIG = Object.freeze({
   theme: 'dark',
   opacity: 96,
   launchAtLogin: false,
-  timezone: 'Asia/Shanghai'
+  timezone: 'Asia/Shanghai',
+  windowBounds: null
 });
 
 function booleanSetting(value, fallback) {
@@ -29,6 +30,21 @@ function validTimezone(value) {
   } catch {
     return DEFAULT_CONFIG.timezone;
   }
+}
+
+function normalizeWindowBounds(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const x = Number(value.x);
+  const y = Number(value.y);
+  const width = Number(value.width);
+  const height = Number(value.height);
+  if (![x, y, width, height].every(Number.isFinite)) return null;
+  return {
+    x: Math.round(x),
+    y: Math.round(y),
+    width: Math.max(360, Math.min(1_600, Math.round(width))),
+    height: Math.max(580, Math.min(1_400, Math.round(height)))
+  };
 }
 
 function normalizeConfig(input) {
@@ -50,7 +66,8 @@ function normalizeConfig(input) {
     launchAtLogin: booleanSetting(raw.launchAtLogin, DEFAULT_CONFIG.launchAtLogin),
     theme: ['dark', 'light', 'system'].includes(raw.theme) ? raw.theme : DEFAULT_CONFIG.theme,
     opacity: Number.isFinite(opacity) ? Math.max(40, Math.min(100, opacity)) : DEFAULT_CONFIG.opacity,
-    timezone: validTimezone(raw.timezone || DEFAULT_CONFIG.timezone)
+    timezone: validTimezone(raw.timezone || DEFAULT_CONFIG.timezone),
+    windowBounds: normalizeWindowBounds(raw.windowBounds)
   };
 }
 
@@ -83,6 +100,7 @@ function writeConfigFile(filePath, input) {
 module.exports = {
   DEFAULT_CONFIG,
   normalizeConfig,
+  normalizeWindowBounds,
   readConfigFile,
   validTimezone,
   writeConfigFile
