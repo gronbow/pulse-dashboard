@@ -23,6 +23,8 @@ const result = spawnSync(process.execPath, [path.join(__dirname, 'test-electron-
 assert.equal(result.status, 0, result.stdout + '\n' + result.stderr);
 const screenshot = fs.readFileSync(path.join(root, '.runtime-check-v8', outputName));
 assert.deepEqual([...screenshot.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
-assert.ok(Math.abs(screenshot.readUInt32BE(16) - 645) <= 3);
-assert.ok(Math.abs(screenshot.readUInt32BE(20) - 1_230) <= 3);
-console.log('Responsive layout passed: light theme and long text remain within the window at 150% DPI.');
+const width = screenshot.readUInt32BE(16);
+const height = screenshot.readUInt32BE(20);
+assert.ok(Math.abs(width - 645) <= 3, `unexpected 150% DPI width: ${width}`);
+assert.ok(height >= 867 && height <= 1_233, `height must respect the 580–820 CSS px display clamp: ${height}`);
+console.log(`Responsive layout passed: light theme and long text remain within the ${width}x${height} window at 150% DPI.`);
