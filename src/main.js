@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, safeStorage, Tray } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, safeStorage, session, Tray } = require('electron');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -18,31 +18,25 @@ const {
 const {
   createSecureSnapshotCodec,
   isSnapshotExpired,
-  normalizeRetentionDays,
   snapshotTimestamp
 } = require('./secure-snapshot-store');
 const { assertSnapshotForDisplay } = require('../scripts/snapshot-policy');
+const {
+  DEFAULT_CONFIG,
+  normalizeConfig,
+  readConfigFile,
+  writeConfigFile
+} = require('./config');
 
 const WINDOWS_APP_ID = 'app.pulse.dashboard';
-const DEFAULT_CONFIG = {
-  dataSource: 'demo',
-  bridgeUrl: '',
-  refreshIntervalMinutes: 5,
-  dataRetentionDays: 7,
-  alwaysOnTop: true,
-  compactMode: false,
-  compactAspectRatio: '16:9',
-  theme: 'dark',
-  opacity: 96,
-  launchAtLogin: false,
-  timezone: 'Asia/Shanghai'
-};
 
 let mainWindow;
 let tray;
 let quitting = false;
 let codexHandoffServer;
+let invalidLegacySnapshotPaths = [];
 if (process.platform === 'win32') app.setAppUserModelId(WINDOWS_APP_ID);
+app.enableSandbox();
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
 function configPath() {
@@ -63,40 +57,11 @@ function legacySnapshotPaths() {
 }
 
 function readConfig() {
-  try {
-    return normalizeConfig(JSON.parse(fs.readFileSync(configPath(), 'utf8')));
-  } catch {
-    return { ...DEFAULT_CONFIG };
-  }
-}
-
-function normalizeConfig(input) {
-  const raw = input && typeof input === 'object' ? input : {};
-  const refreshIntervalMinutes = Number(raw.refreshIntervalMinutes);
-  const opacity = Number(raw.opacity);
-  const dataRetentionDays = normalizeRetentionDays(raw.dataRetentionDays);
-  return {
-    ...DEFAULT_CONFIG,
-    ...raw,
-    dataSource: ['demo', 'bridge', 'codex'].includes(raw.dataSource) ? raw.dataSource : DEFAULT_CONFIG.dataSource,
-    bridgeUrl: String(raw.bridgeUrl || '').trim().replace(/\/$/, ''),
-    refreshIntervalMinutes: [1, 5, 15, 30, 60].includes(refreshIntervalMinutes) ? refreshIntervalMinutes : DEFAULT_CONFIG.refreshIntervalMinutes,
-    dataRetentionDays,
-    alwaysOnTop: raw.alwaysOnTop == null ? DEFAULT_CONFIG.alwaysOnTop : Boolean(raw.alwaysOnTop),
-    compactMode: raw.compactMode == null ? DEFAULT_CONFIG.compactMode : Boolean(raw.compactMode),
-    compactAspectRatio: ['4:3', '16:9', '21:9'].includes(raw.compactAspectRatio) ? raw.compactAspectRatio : DEFAULT_CONFIG.compactAspectRatio,
-    launchAtLogin: raw.launchAtLogin == null ? DEFAULT_CONFIG.launchAtLogin : Boolean(raw.launchAtLogin),
-    theme: ['dark', 'light', 'system'].includes(raw.theme) ? raw.theme : DEFAULT_CONFIG.theme,
-    opacity: Number.isFinite(opacity) ? Math.max(40, Math.min(100, opacity)) : DEFAULT_CONFIG.opacity,
-    timezone: String(raw.timezone || DEFAULT_CONFIG.timezone)
-  };
+  return readConfigFile(configPath());
 }
 
 function writeConfig(next) {
-  const safe = normalizeConfig(next);
-  fs.mkdirSync(path.dirname(configPath()), { recursive: true });
-  fs.writeFileSync(configPath(), JSON.stringify(safe, null, 2), 'utf8');
-  return safe;
+  return writeConfigFile(configPath(), next);
 }
 
 function readSnapshotCache() {
@@ -130,25 +95,49 @@ function removeFileIfPresent(filePath) {
 }
 
 function migrateLegacySnapshotStore() {
-  if (fs.existsSync(snapshotCachePath())) return;
+  invalidLegacySnapshotPaths = [];
+  const existingSecureSnapshot = readSnapshotCache();
   const candidates = [];
   for (const filePath of legacySnapshotPaths()) {
     try {
       const snapshot = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      assertSnapshotForDisplay(snapshot);
       const timestamp = snapshotTimestamp(snapshot);
       if (timestamp != null) candidates.push({ filePath, snapshot, timestamp });
     } catch {
-      // Invalid legacy files are not migrated or deleted automatically.
+      if (fs.existsSync(filePath)) invalidLegacySnapshotPaths.push(filePath);
     }
   }
   candidates.sort((left, right) => right.timestamp - left.timestamp);
+  if (existingSecureSnapshot) {
+    for (const candidate of candidates) removeFileIfPresent(candidate.filePath);
+    return;
+  }
   const newest = candidates[0];
-  if (!newest) return;
-  if (!isSnapshotExpired(newest.snapshot, readConfig().dataRetentionDays)) {
+  if (newest && !isSnapshotExpired(newest.snapshot, readConfig().dataRetentionDays)) {
     writeSnapshotCache(newest.snapshot);
     if (!readSnapshotCache()) throw new Error('Pulse could not verify the migrated secure snapshot store');
   }
   for (const candidate of candidates) removeFileIfPresent(candidate.filePath);
+}
+
+async function promptInvalidLegacySnapshotCleanup() {
+  const paths = [...new Set(invalidLegacySnapshotPaths)].filter((filePath) => fs.existsSync(filePath));
+  if (!paths.length || smokeScreenshotPath()) return;
+  const result = await dialog.showMessageBox(mainWindow, {
+    type: 'warning',
+    buttons: ['暂时保留', '删除旧文件'],
+    defaultId: 0,
+    cancelId: 0,
+    noLink: true,
+    title: '发现旧版明文快照',
+    message: 'Pulse 发现无法验证的旧版明文健康快照。',
+    detail: '这些文件不会被读取或迁移。你可以保留以便手动检查，或立即从本机删除。'
+  });
+  if (result.response === 1) {
+    for (const filePath of paths) removeFileIfPresent(filePath);
+    invalidLegacySnapshotPaths = [];
+  }
 }
 
 function requestJson(target, options = {}) {
@@ -276,14 +265,15 @@ function createHttpBridgeAdapter(config) {
         headers: config.dataSource === 'codex' ? bearerHeaders(codexToken) : undefined
       });
     },
-    generateInsight: async (snapshot) => {
-      if (config.dataSource === 'codex') await verifyCodexHandoff(bridgeUrl, codexToken);
-      return requestJson(`${bridgeUrl}/api/insight`, {
-        method: 'POST',
-        headers: config.dataSource === 'codex' ? bearerHeaders(codexToken) : undefined,
-        body: { snapshot }
-      });
-    }
+    generateInsight: config.dataSource === 'codex'
+      ? async () => {
+        await verifyCodexHandoff(bridgeUrl, codexToken);
+        return requestJson(`${bridgeUrl}/api/insight`, {
+          method: 'POST',
+          headers: bearerHeaders(codexToken)
+        });
+      }
+      : null
   });
 }
 
@@ -362,9 +352,12 @@ async function generateInsight(snapshot) {
   const safeSnapshot = normalizeSnapshot(snapshot);
   if (config.dataSource !== 'demo' && resolveBridgeUrl(config)) {
     try {
-      const result = await createHttpBridgeAdapter(config).generateInsight(safeSnapshot);
-      const insight = normalizeInsight(result);
-      if (insight.text) return { ...insight, source: 'bridge' };
+      const adapter = createHttpBridgeAdapter(config);
+      if (adapter.generateInsight) {
+        const result = await adapter.generateInsight(safeSnapshot);
+        const insight = normalizeInsight(result);
+        if (insight.text) return { ...insight, source: 'bridge' };
+      }
     } catch {
       // The cached/local insight below is the intentional offline fallback.
     }
@@ -590,6 +583,7 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   mainWindow.webContents.on('will-navigate', (event) => event.preventDefault());
+  mainWindow.webContents.on('will-attach-webview', (event) => event.preventDefault());
   mainWindow.once('ready-to-show', async () => {
     if (smokeOutput) {
       try {
@@ -604,6 +598,9 @@ function createWindow() {
       return;
     }
     if (!startHidden) mainWindow.show();
+    promptInvalidLegacySnapshotCleanup().catch(() => {
+      // Leave unverified legacy files untouched if the user prompt cannot be shown.
+    });
   });
   mainWindow.on('close', (event) => {
     if (!quitting) {
@@ -611,6 +608,14 @@ function createWindow() {
       mainWindow.hide();
     }
   });
+}
+
+function configureSessionSecurity() {
+  session.defaultSession.setPermissionCheckHandler(() => false);
+  session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
+  if (typeof session.defaultSession.setDevicePermissionHandler === 'function') {
+    session.defaultSession.setDevicePermissionHandler(() => false);
+  }
 }
 
 function createTray() {
@@ -721,6 +726,7 @@ if (!hasSingleInstanceLock) {
   });
   app.whenReady().then(() => {
     Menu.setApplicationMenu(null);
+    configureSessionSecurity();
     const trayCheckOutput = trayIconCheckPath();
     if (trayCheckOutput) {
       try {

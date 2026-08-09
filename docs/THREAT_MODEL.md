@@ -18,7 +18,9 @@ flowchart LR
 - Handoff 只监听 `127.0.0.1`，拒绝非本机 Host、浏览器 `Origin` 和未认证 API 请求。
 - 客户端先发送随机挑战并校验 HMAC 身份证明，确认固定端口上的服务持有当前用户令牌后，才发送 Bearer 令牌或健康快照。
 - Renderer 启用上下文隔离、沙箱和收紧的内容安全策略；主进程只接受来自已加载本地页面的 IPC。
+- Electron 会话默认拒绝通知、媒体、设备等权限请求；Preload 事件订阅不会把 `IpcRendererEvent` 暴露给 Renderer。
 - 快照使用 Windows 当前用户的系统加密能力持久化；独立 Node 开发服务器只保存在内存中。
+- 打包版关闭 `RunAsNode`、`NODE_OPTIONS` 和命令行调试入口，启用 Cookie 加密、嵌入式 ASAR 完整性校验并只从 ASAR 加载应用代码。
 
 ## 已覆盖的风险
 
@@ -31,6 +33,8 @@ flowchart LR
 | 明文健康缓存 | Windows `safeStorage` 加密信封；不提供明文回退。 |
 | 无限期保留 | 1 / 7 / 30 天留存和一键清除。 |
 | Renderer 扩大权限 | 沙箱、上下文隔离、严格 IPC 来源校验、禁用外部打开接口。 |
+| Electron 命令行/环境变量改写 | 打包 Fuse 禁用 Node 运行模式、`NODE_OPTIONS` 与调试参数，并强制 ASAR 完整性。 |
+| 自定义 Bridge 获取完整快照 | 只允许回环读取，不向未认证的自定义 Bridge POST 快照或请求洞察。 |
 
 ## 明确不覆盖
 
@@ -38,6 +42,7 @@ flowchart LR
 - 操作系统、Electron、Codex、COROS MCP 或用户安装的第三方插件本身被攻破。
 - 用户主动复制、截图、备份或上传健康数据后的二次传播。
 - COROS 与 Codex 服务侧的数据处理；应分别遵循对应服务的隐私政策。
+- 当前 Renderer 仍加载仓库打包的本地 `file://` 页面；已关闭 file 协议额外权限并限制导航/窗口创建，但迁移到自定义应用协议仍是后续纵深防御事项。
 
 ## 失效方式
 

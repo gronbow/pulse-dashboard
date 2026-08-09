@@ -14,6 +14,11 @@ const {
   isSnapshotExpired,
   normalizeRetentionDays
 } = require('../src/secure-snapshot-store');
+const {
+  normalizeConfig,
+  readConfigFile,
+  writeConfigFile
+} = require('../src/config');
 
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pulse-security-test-'));
 try {
@@ -45,6 +50,21 @@ try {
   assert.equal(isSnapshotExpired(snapshot, 7), false);
   assert.equal(isSnapshotExpired({ meta: { lastUpdated: '2000-01-01T00:00:00Z' } }, 30), true);
   assert.equal(normalizeRetentionDays(999), 7);
+  const configPath = path.join(tempDir, 'config.json');
+  const normalizedConfig = normalizeConfig({
+    dataSource: 'codex',
+    alwaysOnTop: false,
+    timezone: 'Not/A_Timezone',
+    unexpectedSecret: 'must-not-persist'
+  });
+  assert.equal(normalizedConfig.alwaysOnTop, false);
+  assert.equal(normalizedConfig.timezone, 'Asia/Shanghai');
+  assert.equal('unexpectedSecret' in normalizedConfig, false);
+  writeConfigFile(configPath, normalizedConfig);
+  writeConfigFile(configPath, { ...normalizedConfig, opacity: 88, anotherUnknownKey: true });
+  assert.equal(readConfigFile(configPath).opacity, 88);
+  assert.equal(fs.readFileSync(configPath, 'utf8').includes('UnknownKey'), false);
+  assert.equal(fs.readdirSync(tempDir).some((name) => name.endsWith('.tmp')), false);
   console.log('Local security passed: credentials, identity proofs, secure envelopes and retention are enforced.');
 } finally {
   fs.rmSync(tempDir, { recursive: true, force: true });

@@ -1,5 +1,12 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+function subscribe(channel, handler) {
+  if (typeof handler !== 'function') throw new TypeError('Pulse event handler must be a function');
+  const listener = () => handler();
+  ipcRenderer.on(channel, listener);
+  return () => ipcRenderer.removeListener(channel, listener);
+}
+
 contextBridge.exposeInMainWorld('pulseDesktop', {
   getConfig: () => ipcRenderer.invoke('app:get-config'),
   updateConfig: (config) => ipcRenderer.invoke('app:update-config', config),
@@ -9,6 +16,6 @@ contextBridge.exposeInMainWorld('pulseDesktop', {
   clearLocalData: () => ipcRenderer.invoke('app:clear-local-data'),
   hide: () => ipcRenderer.send('app:hide'),
   quit: () => ipcRenderer.send('app:quit'),
-  onRefresh: (handler) => ipcRenderer.on('dashboard:refresh', handler),
-  onOpenSettings: (handler) => ipcRenderer.on('dashboard:open-settings', handler)
+  onRefresh: (handler) => subscribe('dashboard:refresh', handler),
+  onOpenSettings: (handler) => subscribe('dashboard:open-settings', handler)
 });

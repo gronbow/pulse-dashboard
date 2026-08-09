@@ -29,6 +29,8 @@ Handoff 默认监听 `http://127.0.0.1:19091`，不监听局域网地址。桌�
 | `GET /api/snapshot?timezone=...` | 供已认证的 Pulse Desktop 读取当前快照。 |
 | `POST /api/insight` | 向已认证的 Pulse Desktop 返回快照中的训练建议和标签。 |
 
+以上 `/api/insight` 仅属于带随机令牌和服务身份证明的 Codex Handoff。设置中的“自定义本地 bridge”是开发兼容入口，只从回环地址读取 `/api/snapshot`：Pulse 不会把完整健康快照 POST 给该服务，也不会采信其 `ready` 或训练强度结论。
+
 快照必须含有 `health`、`todayActivities`、有效 `meta.asOf` / `meta.lastUpdated` / `meta.timezone` 和显式 `readiness`；字段缺失会按现有快照归一化规则显示为空值，不应伪造成 `0`。新发布快照的 `lastUpdated` 必须在最近 36 小时内，不能位于未来；旧快照仍可作为带时间标记的显示/离线数据读取，但不能重新冒充即时发布结果。
 
 为避免凌晨或设备尚未归档时把“最近有效值”误写成“今日值”，健康指标可以携带独立日期：
