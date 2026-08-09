@@ -14,15 +14,18 @@ const compactMode = process.env.PULSE_SMOKE_COMPACT_MODE === '1';
 const compactAspectRatio = ['4:3', '16:9', '21:9'].includes(process.env.PULSE_SMOKE_COMPACT_ASPECT_RATIO)
   ? process.env.PULSE_SMOKE_COMPACT_ASPECT_RATIO
   : '16:9';
+const smokeOutputName = /^[a-z0-9][a-z0-9._-]*\.png$/i.test(process.env.PULSE_SMOKE_OUTPUT_NAME || '')
+  ? process.env.PULSE_SMOKE_OUTPUT_NAME
+  : '';
 const screenshotPath = path.join(
   outputDirectory,
-  compactMode
+  smokeOutputName || (compactMode
     ? 'pulse-dashboard-compact-' + compactAspectRatio.replace(':', '-') + '.png'
     : liveSnapshotSource
     ? scrollSelector ? 'pulse-dashboard-live-trends.png' : 'pulse-dashboard-live.png'
     : smokeDataSource === 'codex'
       ? 'pulse-dashboard-awaiting-sync.png'
-    : scrollSelector ? 'pulse-dashboard-trends.png' : 'pulse-dashboard-smoke.png'
+    : scrollSelector ? 'pulse-dashboard-trends.png' : 'pulse-dashboard-smoke.png')
 );
 const userDataPath = fs.mkdtempSync(path.join(os.tmpdir(), 'pulse-electron-smoke-'));
 const legacySnapshotPath = path.join(userDataPath, 'snapshot-cache.json');
@@ -34,7 +37,7 @@ const defaultExpectations = JSON.stringify({
 
 fs.mkdirSync(outputDirectory, { recursive: true });
 if (fs.existsSync(screenshotPath)) fs.unlinkSync(screenshotPath);
-if (liveSnapshotSource || smokeDataSource !== 'demo' || compactMode) {
+if (liveSnapshotSource || smokeDataSource !== 'demo' || compactMode || process.env.PULSE_SMOKE_THEME) {
   if (liveSnapshotSource) fs.copyFileSync(liveSnapshotSource, legacySnapshotPath);
   fs.writeFileSync(path.join(userDataPath, 'config.json'), JSON.stringify({
     dataSource: smokeDataSource,
@@ -43,7 +46,7 @@ if (liveSnapshotSource || smokeDataSource !== 'demo' || compactMode) {
     alwaysOnTop: true,
     compactMode: false,
     compactAspectRatio: '16:9',
-    theme: 'dark',
+    theme: ['dark', 'light', 'system'].includes(process.env.PULSE_SMOKE_THEME) ? process.env.PULSE_SMOKE_THEME : 'dark',
     opacity: 96,
     launchAtLogin: false,
     timezone: 'Asia/Shanghai'
@@ -61,6 +64,7 @@ const child = spawn(electronPath, [
   root,
   `--user-data-dir=${userDataPath}`,
   `--pulse-smoke-screenshot=${screenshotPath}`,
+  ...(process.env.PULSE_SMOKE_SCALE_FACTOR ? [`--force-device-scale-factor=${process.env.PULSE_SMOKE_SCALE_FACTOR}`] : []),
   '--disable-gpu'
 ], {
   cwd: root,

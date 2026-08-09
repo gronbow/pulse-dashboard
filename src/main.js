@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, safeStorage, session, Tray } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, safeStorage, screen, session, Tray } = require('electron');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -35,6 +35,8 @@ let tray;
 let quitting = false;
 let codexHandoffServer;
 let invalidLegacySnapshotPaths = [];
+let applyingWindowLayout = false;
+let persistWindowBoundsTimer;
 if (process.platform === 'win32') app.setAppUserModelId(WINDOWS_APP_ID);
 app.enableSandbox();
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
@@ -303,7 +305,6 @@ function applyWindowConfig(config) {
   if (!mainWindow) return;
   applyWindowLayout(config);
   mainWindow.setAlwaysOnTop(Boolean(config.alwaysOnTop));
-  mainWindow.setOpacity(Math.max(0.1, Math.min(1, Number(config.opacity || 100) / 100)));
   if (app.isPackaged && typeof app.setLoginItemSettings === 'function') {
     app.setLoginItemSettings({ openAtLogin: config.launchAtLogin, args: ['--hidden'] });
   }
@@ -318,16 +319,54 @@ function windowSizeForConfig(config) {
     };
     return sizes[config.compactAspectRatio] || sizes['16:9'];
   }
-  return { width: 430, height: 820 };
+  return config.windowBounds
+    ? { width: config.windowBounds.width, height: config.windowBounds.height }
+    : { width: 430, height: 820 };
+}
+
+function clampWindowBounds(bounds) {
+  const display = screen.getDisplayMatching(bounds);
+  const workArea = display.workArea;
+  const width = Math.min(Math.max(1, Math.round(bounds.width)), workArea.width);
+  const height = Math.min(Math.max(1, Math.round(bounds.height)), workArea.height);
+  return {
+    x: Math.min(Math.max(Math.round(bounds.x), workArea.x), workArea.x + workArea.width - width),
+    y: Math.min(Math.max(Math.round(bounds.y), workArea.y), workArea.y + workArea.height - height),
+    width,
+    height
+  };
+}
+
+function initialWindowBounds(config) {
+  const size = windowSizeForConfig(config);
+  if (!config.windowBounds) return size;
+  return clampWindowBounds({ ...config.windowBounds, ...size });
 }
 
 function applyWindowLayout(config) {
   if (!mainWindow) return;
   const compact = Boolean(config.compactMode);
   const size = windowSizeForConfig(config);
+  const current = mainWindow.getBounds();
+  const preferred = compact
+    ? { x: current.x, y: current.y, ...size }
+    : config.windowBounds || { x: current.x, y: current.y, ...size };
+  const bounds = clampWindowBounds(preferred);
+  applyingWindowLayout = true;
   mainWindow.setResizable(!compact);
   mainWindow.setMinimumSize(compact ? size.width : 360, compact ? size.height : 580);
-  mainWindow.setSize(size.width, size.height);
+  mainWindow.setBounds(bounds);
+  setImmediate(() => { applyingWindowLayout = false; });
+}
+
+function persistWindowBounds() {
+  if (!mainWindow || applyingWindowLayout || readConfig().compactMode) return;
+  clearTimeout(persistWindowBoundsTimer);
+  persistWindowBoundsTimer = setTimeout(() => {
+    if (!mainWindow || mainWindow.isDestroyed() || readConfig().compactMode) return;
+    const bounds = clampWindowBounds(mainWindow.getBounds());
+    writeConfig({ ...readConfig(), windowBounds: bounds });
+  }, 250);
 }
 
 async function testBridge(bridgeUrl, timezone, dataSource) {
@@ -475,6 +514,51 @@ function smokeTextExpectations() {
   });
 }
 
+function smokeLayoutAuditMode() {
+  if (app.isPackaged) return '';
+  const mode = String(process.env.PULSE_SMOKE_LAYOUT_AUDIT || '').trim();
+  return ['compact', 'full'].includes(mode) ? mode : '';
+}
+
+async function prepareAndAuditSmokeLayout() {
+  if (process.env.PULSE_SMOKE_LONG_TEXT === '1') {
+    await mainWindow.webContents.executeJavaScript(`(() => {
+      document.querySelector('#source-badge').textContent = 'Codex COROS MCP 本机缓存数据尚待完整同步';
+      document.querySelector('#readiness-chip').textContent = '数据不足 · 当前主观安全确认尚未完整提供';
+      document.querySelector('#plan-title').textContent = '本周耐力训练与恢复状态动态调整计划';
+      document.querySelector('#plan-description').textContent = '根据睡眠、恢复和近期训练负荷变化，在保持舒适强度的前提下灵活调整当天内容。';
+    })()`, true);
+  }
+  const mode = smokeLayoutAuditMode();
+  if (!mode) return;
+  const result = await mainWindow.webContents.executeJavaScript(`(() => {
+    const mode = ${JSON.stringify(smokeLayoutAuditMode())};
+    const selectors = mode === 'compact'
+      ? ['#compact-widget', '.compact-header', '.compact-status', '.compact-metric-grid', ...Array.from(document.querySelectorAll('.compact-metric')).map((_, index) => '.compact-metric:nth-child(' + (index + 1) + ')')]
+      : ['.app-shell', '.titlebar', '.dayline', '.insight-card', '.training-card', '.metric-grid', '.plan-card', '.trend-card'];
+    const violations = [];
+    for (const selector of selectors) {
+      const element = document.querySelector(selector);
+      if (!element) { violations.push(selector + ':missing'); continue; }
+      const rect = element.getBoundingClientRect();
+      if (rect.left < -1 || rect.right > innerWidth + 1 || rect.top < -1 || rect.width < 1) {
+        violations.push(selector + ':outside-viewport');
+      }
+    }
+    if (document.documentElement.scrollWidth > innerWidth + 1 || document.body.scrollWidth > innerWidth + 1) {
+      violations.push('document:horizontal-overflow');
+    }
+    if (mode === 'compact') {
+      const valueSize = Number.parseFloat(getComputedStyle(document.querySelector('.compact-metric strong')).fontSize);
+      const labelSize = Number.parseFloat(getComputedStyle(document.querySelector('.compact-metric-label')).fontSize);
+      if (valueSize < 20) violations.push('compact-value:too-small');
+      if (labelSize < 11) violations.push('compact-label:too-small');
+    }
+    return violations;
+  })()`, true);
+  if (result.length) throw new Error(`smoke layout audit failed: ${result.join(', ')}`);
+}
+
 async function captureSmokeScreenshot(outputPath) {
   const smokeConfig = await mainWindow.webContents.executeJavaScript(
     'window.pulseDesktop.getConfig()',
@@ -493,6 +577,7 @@ async function captureSmokeScreenshot(outputPath) {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   if (!ready) throw new Error('dashboard did not finish rendering within 3 seconds');
+  await prepareAndAuditSmokeLayout();
   for (const expectation of smokeTextExpectations()) {
     const actual = await mainWindow.webContents.executeJavaScript(
       `document.querySelector(${JSON.stringify(expectation.selector)})?.textContent || ''`,
@@ -557,12 +642,11 @@ function createWindow() {
   const startHidden = process.argv.includes('--hidden');
   const smokeOutput = smokeScreenshotPath();
   const windowIcon = loadPulseIcon();
-  const initialSize = windowSizeForConfig(config);
+  const initialBounds = initialWindowBounds(config);
   mainWindow = new BrowserWindow({
-    width: initialSize.width,
-    height: initialSize.height,
-    minWidth: config.compactMode ? initialSize.width : 360,
-    minHeight: config.compactMode ? initialSize.height : 580,
+    ...initialBounds,
+    minWidth: config.compactMode ? initialBounds.width : 360,
+    minHeight: config.compactMode ? initialBounds.height : 580,
     show: false,
     frame: false,
     transparent: true,
@@ -608,6 +692,8 @@ function createWindow() {
       mainWindow.hide();
     }
   });
+  mainWindow.on('move', persistWindowBounds);
+  mainWindow.on('resize', persistWindowBounds);
 }
 
 function configureSessionSecurity() {
@@ -795,7 +881,7 @@ async function clearLocalHealthData() {
 ipcMain.handle('app:get-config', (event) => { assertTrustedRenderer(event); return readConfig(); });
 ipcMain.handle('app:update-config', (event, next) => {
   assertTrustedRenderer(event);
-  const config = writeConfig(next || {});
+  const config = writeConfig({ ...readConfig(), ...(next || {}) });
   applyWindowConfig(config);
   return config;
 });

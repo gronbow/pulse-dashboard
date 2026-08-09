@@ -8,6 +8,20 @@
     <title>Pulse Dashboard</title>
   </head>
   <body>
+    <svg class="icon-sprite" aria-hidden="true">
+      <symbol id="icon-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.25"></circle><path d="M12 2.75v2M12 19.25v2M2.75 12h2M19.25 12h2M5.45 5.45l1.42 1.42M17.13 17.13l1.42 1.42M18.55 5.45l-1.42 1.42M6.87 17.13l-1.42 1.42"></path></symbol>
+      <symbol id="icon-minus" viewBox="0 0 24 24"><path d="M5 12h14"></path></symbol>
+      <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"></path></symbol>
+      <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M19 8a7.5 7.5 0 1 0 .6 7M19 4v4h-4"></path></symbol>
+      <symbol id="icon-steps" viewBox="0 0 24 24"><path d="M8.5 5.5c1.4 0 2.5 1.6 2.5 3.5s-1.1 3.5-2.5 3.5S6 10.9 6 9s1.1-3.5 2.5-3.5ZM15.8 12.2c1.2 0 2.2 1.4 2.2 3.1s-1 3.2-2.2 3.2-2.3-1.4-2.3-3.2 1-3.1 2.3-3.1Z"></path></symbol>
+      <symbol id="icon-calories" viewBox="0 0 24 24"><path d="M13.5 3.5c.6 3-2.3 4.2-2.3 6.6 0 1.2.7 2.1 1.7 2.6-.1-1.8 1-2.9 2.4-4.2 1.8 1.8 3.2 3.8 3.2 6.2A6.5 6.5 0 0 1 5.5 15c0-3.3 2-6.1 5.3-8.8.1 2 .7 2.9 1.2 3.2.4-2.2.9-3.9 1.5-5.9Z"></path></symbol>
+      <symbol id="icon-heart" viewBox="0 0 24 24"><path d="M20.4 5.7a5.1 5.1 0 0 0-7.2 0L12 6.9l-1.2-1.2a5.1 5.1 0 1 0-7.2 7.2L12 21l8.4-8.1a5.1 5.1 0 0 0 0-7.2Z"></path></symbol>
+      <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M19.4 15.5A8 8 0 0 1 8.5 4.6 8.5 8.5 0 1 0 19.4 15.5Z"></path></symbol>
+      <symbol id="icon-pulse" viewBox="0 0 24 24"><path d="M3 12h4l2.2-5 4.1 10 2.2-5H21"></path></symbol>
+      <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="M6 18 18 6M10 6h8v8"></path></symbol>
+      <symbol id="icon-stress" viewBox="0 0 24 24"><path d="M4 9c2-2 4-2 6 0s4 2 6 0 3-2 4-1M4 15c2-2 4-2 6 0s4 2 6 0 3-2 4-1"></path></symbol>
+      <symbol id="icon-oxygen" viewBox="0 0 24 24"><path d="M12 3c3.2 4 6 7.3 6 11a6 6 0 0 1-12 0c0-3.7 2.8-7 6-11Z"></path></symbol>
+    </svg>
     <main class="app-shell">
       <section id="compact-widget" class="compact-widget" aria-label="Pulse 简洁健康小组件">
         <header class="compact-header drag-region">
@@ -19,30 +33,30 @@
             </div>
           </div>
           <div class="compact-actions no-drag">
-            <button id="compact-settings-button" class="icon-button" aria-label="设置">⚙</button>
-            <button id="compact-hide-button" class="icon-button" aria-label="隐藏">—</button>
+            <button id="compact-settings-button" class="icon-button" type="button" aria-label="打开设置"><svg class="ui-icon" aria-hidden="true"><use href="#icon-settings"></use></svg></button>
+            <button id="compact-hide-button" class="icon-button" type="button" aria-label="隐藏看板"><svg class="ui-icon" aria-hidden="true"><use href="#icon-minus"></use></svg></button>
           </div>
         </header>
         <div class="compact-status">
           <span id="compact-source-badge" class="compact-source">演示</span>
-          <span id="compact-updated" class="compact-updated">—</span>
-          <button id="compact-refresh-button" class="compact-refresh" aria-label="读取最新同步" title="读取最近一次已同步的快照">↻</button>
+          <span id="compact-updated" class="compact-updated" aria-live="polite">—</span>
+          <button id="compact-refresh-button" class="compact-refresh" type="button" aria-label="读取最新同步" title="读取最近一次已同步的快照"><svg class="ui-icon" aria-hidden="true"><use href="#icon-refresh"></use></svg></button>
         </div>
         <div class="compact-metric-grid">
           <article class="compact-metric compact-steps-card">
-            <div class="compact-metric-label"><span class="compact-metric-icon steps-icon">⌁</span><span class="compact-metric-name">步数</span></div>
+            <div class="compact-metric-label"><span class="compact-metric-icon steps-icon"><svg class="metric-svg" aria-hidden="true"><use href="#icon-steps"></use></svg></span><span class="compact-metric-name">步数</span></div>
             <div class="compact-metric-data"><strong id="compact-steps">—</strong><span class="compact-unit">今日累计</span></div>
           </article>
           <article class="compact-metric compact-calories-card">
-            <div class="compact-metric-label"><span class="compact-metric-icon calories-icon">≈</span><span class="compact-metric-name">今日消耗</span></div>
+            <div class="compact-metric-label"><span class="compact-metric-icon calories-icon"><svg class="metric-svg filled" aria-hidden="true"><use href="#icon-calories"></use></svg></span><span class="compact-metric-name">今日消耗</span></div>
             <div class="compact-metric-data"><strong id="compact-calories">—</strong><span class="compact-unit">kcal</span></div>
           </article>
           <article class="compact-metric compact-rhr-card">
-            <div class="compact-metric-label"><span class="compact-metric-icon heart-icon">♥</span><span class="compact-metric-name">静息心率</span></div>
+            <div class="compact-metric-label"><span class="compact-metric-icon heart-icon"><svg class="metric-svg filled" aria-hidden="true"><use href="#icon-heart"></use></svg></span><span class="compact-metric-name">静息心率</span></div>
             <div class="compact-metric-data"><strong id="compact-rhr">—</strong><span class="compact-unit">bpm</span></div>
           </article>
           <article class="compact-metric compact-sleep-card">
-            <div class="compact-metric-label"><span class="compact-metric-icon sleep-icon">☾</span><span class="compact-metric-name">睡眠时长</span></div>
+            <div class="compact-metric-label"><span class="compact-metric-icon sleep-icon"><svg class="metric-svg" aria-hidden="true"><use href="#icon-moon"></use></svg></span><span class="compact-metric-name">睡眠时长</span></div>
             <div class="compact-metric-data"><strong id="compact-sleep">—</strong><span class="compact-unit">昨夜记录</span></div>
           </article>
         </div>
@@ -57,8 +71,8 @@
           </div>
         </div>
         <div class="window-actions no-drag">
-          <button id="settings-button" class="icon-button" aria-label="设置">⚙</button>
-          <button id="hide-button" class="icon-button" aria-label="隐藏">—</button>
+          <button id="settings-button" class="icon-button" type="button" aria-label="打开设置"><svg class="ui-icon" aria-hidden="true"><use href="#icon-settings"></use></svg></button>
+          <button id="hide-button" class="icon-button" type="button" aria-label="隐藏看板"><svg class="ui-icon" aria-hidden="true"><use href="#icon-minus"></use></svg></button>
         </div>
       </header>
 
@@ -67,17 +81,17 @@
           <span id="today-label">今天，7月24日</span>
           <span id="source-badge" class="source-badge">演示数据</span>
         </div>
-        <button id="refresh-button" class="refresh-button" title="读取最近一次已同步的 Codex 快照">↻ <span id="refresh-label">读取同步</span></button>
+        <button id="refresh-button" class="refresh-button" type="button" title="读取最近一次已同步的 Codex 快照"><svg class="ui-icon" aria-hidden="true"><use href="#icon-refresh"></use></svg><span id="refresh-label">读取同步</span></button>
       </section>
 
-      <div id="error-banner" class="error-banner" hidden></div>
+      <div id="error-banner" class="error-banner" role="status" aria-live="polite" hidden></div>
 
       <section class="insight-card card">
         <div class="card-heading">
           <div class="section-label"><span class="pulse-dot"></span> AI 今日洞察</div>
-          <div class="insight-actions"><span id="readiness-chip" class="readiness-chip insufficient">数据不足</span><button id="insight-button" class="text-button">重新生成</button></div>
+          <div class="insight-actions"><span id="readiness-chip" class="readiness-chip insufficient">数据不足</span><button id="insight-button" class="text-button" type="button">重新生成</button></div>
         </div>
-        <p id="insight-text" class="insight-text">正在加载今日状态……</p>
+        <p id="insight-text" class="insight-text" aria-live="polite">正在加载今日状态……</p>
         <div id="insight-tags" class="tag-row"></div>
         <p class="muted tiny">仅供训练参考，不构成医疗建议</p>
       </section>
@@ -89,7 +103,7 @@
         </div>
         <div id="training-empty" class="empty-state" hidden>今日暂无训练记录</div>
         <div id="activity-list"></div>
-        <div class="training-footer">
+        <div id="training-footer" class="training-footer">
           <div><span class="muted tiny">今日总距离</span><strong id="total-distance">—</strong></div>
           <div><span class="muted tiny">总时长</span><strong id="total-duration">—</strong></div>
           <div><span class="muted tiny">平均心率</span><strong id="total-heart-rate">—</strong></div>
@@ -98,37 +112,37 @@
 
       <section class="metric-grid">
         <article class="metric-card card">
-          <div class="metric-icon sleep-icon">☾</div>
+          <div class="metric-icon sleep-icon"><svg class="metric-svg" aria-hidden="true"><use href="#icon-moon"></use></svg></div>
           <div class="muted tiny">睡眠</div>
           <strong id="sleep-value">—</strong>
           <span id="sleep-score" class="metric-note">评分 —</span>
         </article>
         <article class="metric-card card">
-          <div class="metric-icon heart-icon">♥</div>
+          <div class="metric-icon heart-icon"><svg class="metric-svg filled" aria-hidden="true"><use href="#icon-heart"></use></svg></div>
           <div class="muted tiny">静息心率</div>
           <strong id="rhr-value">—</strong>
           <span id="rhr-trend" class="metric-note">—</span>
         </article>
         <article class="metric-card card">
-          <div class="metric-icon hrv-icon">∿</div>
+          <div class="metric-icon hrv-icon"><svg class="metric-svg" aria-hidden="true"><use href="#icon-pulse"></use></svg></div>
           <div class="muted tiny">睡眠 HRV</div>
           <strong id="hrv-value">—</strong>
           <span id="hrv-status" class="metric-note">—</span>
         </article>
         <article class="metric-card card">
-          <div class="metric-icon recovery-icon">↗</div>
+          <div class="metric-icon recovery-icon"><svg class="metric-svg" aria-hidden="true"><use href="#icon-arrow"></use></svg></div>
           <div class="muted tiny">恢复状态</div>
           <strong id="recovery-value">—</strong>
           <span id="recovery-level" class="metric-note">—</span>
         </article>
         <article class="metric-card card steps-card">
-          <div class="metric-icon steps-icon">⌁</div>
+          <div class="metric-icon steps-icon"><svg class="metric-svg" aria-hidden="true"><use href="#icon-steps"></use></svg></div>
           <div class="muted tiny">步数</div>
           <strong id="steps-value">—</strong>
           <span id="steps-note" class="metric-note">今日累计</span>
         </article>
         <article class="metric-card card secondary-health-card">
-          <div id="secondary-health-icon" class="metric-icon stress-icon">≈</div>
+          <div id="secondary-health-icon" class="metric-icon stress-icon"><svg class="metric-svg" aria-hidden="true"><use id="secondary-health-use" href="#icon-stress"></use></svg></div>
           <div id="secondary-health-label" class="muted tiny">日均压力</div>
           <strong id="secondary-health-value">—</strong>
           <span id="secondary-health-note" class="metric-note">—</span>
@@ -141,7 +155,7 @@
           <span id="plan-load" class="muted tiny">—</span>
         </div>
         <div class="plan-row">
-          <div class="plan-symbol">↗</div>
+          <div class="plan-symbol"><svg class="metric-svg" aria-hidden="true"><use href="#icon-arrow"></use></svg></div>
           <div>
             <strong id="plan-title">未设置训练计划</strong>
             <p id="plan-description" class="muted">—</p>
@@ -160,7 +174,7 @@
       </section>
 
       <footer class="footer-line">
-        <span id="last-updated">最后更新 —</span>
+        <span id="last-updated" aria-live="polite">最后更新 —</span>
         <span>Pulse · 本地优先 · 私密可控</span>
       </footer>
       </div>
@@ -168,7 +182,7 @@
 
     <dialog id="settings-dialog" class="settings-dialog">
       <form method="dialog" id="settings-form">
-        <div class="dialog-heading"><h2>看板设置</h2><button value="cancel" class="icon-button">×</button></div>
+        <div class="dialog-heading"><h2>看板设置</h2><button id="close-settings-button" type="button" class="icon-button" aria-label="关闭设置"><svg class="ui-icon" aria-hidden="true"><use href="#icon-close"></use></svg></button></div>
         <label>数据来源
           <select id="data-source">
             <option value="demo">演示数据</option>
@@ -198,9 +212,9 @@
         <label id="compact-aspect-ratio-row">小组件比例
           <select id="compact-aspect-ratio"><option value="16:9">16:9 横版</option><option value="4:3">4:3 横版</option><option value="21:9">21:9 超宽版</option></select>
         </label>
-        <div class="bridge-test-row"><button id="test-bridge-button" type="button" class="secondary-button">测试桥接</button><span id="bridge-test-status" class="muted tiny"></span></div>
-        <div class="local-data-row"><button id="clear-local-data-button" type="button" class="danger-button">清除本机健康数据</button><span id="clear-local-data-status" class="muted tiny"></span></div>
-        <div class="dialog-actions"><button value="cancel" class="secondary-button">取消</button><button id="save-settings" value="default" class="primary-button">保存设置</button></div>
+        <div class="bridge-test-row"><button id="test-bridge-button" type="button" class="secondary-button">测试桥接</button><span id="bridge-test-status" class="muted tiny" role="status" aria-live="polite"></span></div>
+        <div class="local-data-row"><button id="clear-local-data-button" type="button" class="danger-button">清除本机健康数据</button><span id="clear-local-data-status" class="muted tiny" role="status" aria-live="polite"></span></div>
+        <div class="dialog-actions"><button id="cancel-settings-button" type="button" class="secondary-button">取消</button><button id="save-settings" type="submit" class="primary-button">保存设置</button></div>
       </form>
     </dialog>
     <script src="app.js"></script>

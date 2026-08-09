@@ -60,6 +60,10 @@ try {
   assert.equal(normalizedConfig.alwaysOnTop, false);
   assert.equal(normalizedConfig.timezone, 'Asia/Shanghai');
   assert.equal('unexpectedSecret' in normalizedConfig, false);
+  const boundedConfig = normalizeConfig({
+    windowBounds: { x: 80.4, y: -15.6, width: 9_999, height: 100 }
+  });
+  assert.deepEqual(boundedConfig.windowBounds, { x: 80, y: -16, width: 1_600, height: 580 });
   writeConfigFile(configPath, normalizedConfig);
   writeConfigFile(configPath, { ...normalizedConfig, opacity: 88, anotherUnknownKey: true });
   assert.equal(readConfigFile(configPath).opacity, 88);

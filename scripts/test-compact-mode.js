@@ -13,9 +13,9 @@ const expectations = JSON.stringify({
 });
 
 const cases = [
-  { ratio: '16:9', width: 360, height: 203 },
-  { ratio: '4:3', width: 360, height: 270 },
-  { ratio: '21:9', width: 420, height: 180 }
+  { ratio: '16:9', width: 360, height: 203, scale: 1 },
+  { ratio: '4:3', width: 360, height: 270, scale: 1.25 },
+  { ratio: '21:9', width: 420, height: 180, scale: 1.5 }
 ];
 
 for (const testCase of cases) {
@@ -26,6 +26,8 @@ for (const testCase of cases) {
       PULSE_SMOKE_DATA_SOURCE: 'demo',
       PULSE_SMOKE_COMPACT_MODE: '1',
       PULSE_SMOKE_COMPACT_ASPECT_RATIO: testCase.ratio,
+      PULSE_SMOKE_LAYOUT_AUDIT: 'compact',
+      PULSE_SMOKE_SCALE_FACTOR: String(testCase.scale),
       PULSE_SMOKE_EXPECTATIONS: expectations
     },
     encoding: 'utf8',
@@ -37,8 +39,7 @@ for (const testCase of cases) {
   assert.deepEqual([...screenshot.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
   const actualWidth = screenshot.readUInt32BE(16);
   const actualHeight = screenshot.readUInt32BE(20);
-  const scale = actualWidth / testCase.width;
-  assert.equal(Number.isInteger(scale), true, testCase.ratio + ' width is not an integer DPI scale');
-  assert.equal(actualHeight, testCase.height * scale, testCase.ratio + ' height mismatch');
-  console.log('Compact mode passed: ' + testCase.ratio + ' CSS ' + testCase.width + 'x' + testCase.height + ' (PNG ' + actualWidth + 'x' + actualHeight + ').');
+  assert.ok(Math.abs(actualWidth - Math.round(testCase.width * testCase.scale)) <= 1, testCase.ratio + ' width mismatch');
+  assert.ok(Math.abs(actualHeight - Math.round(testCase.height * testCase.scale)) <= 1, testCase.ratio + ' height mismatch');
+  console.log('Compact mode passed: ' + testCase.ratio + ' at ' + Math.round(testCase.scale * 100) + '% DPI (' + actualWidth + 'x' + actualHeight + ' PNG).');
 }

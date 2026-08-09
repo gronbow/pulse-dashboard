@@ -7,7 +7,9 @@
 - [ ] `npm run audit:dependencies` 通过；完整依赖树不得有已知高危漏洞。
 - [ ] `npm run audit:production` 通过；只打包的运行时依赖不得有已知高危漏洞。
 - [ ] `npm run test:desktop` 生成真实 Electron 窗口截图，标题栏、圆角卡片和内置滚动条无回归。
-- [ ] `npm run test:compact-mode` 生成 16:9、4:3、21:9 三种简洁小组件截图，检查四项数据的尺寸、对齐和长文本不截断。
+- [ ] `npm run test:ui-contract` 检查深浅主题核心文字达到 WCAG AA 对比度、SVG 图标、键盘焦点、状态播报和背景层透明度。
+- [ ] `npm run test:compact-mode` 分别以 100%、125%、150% 缩放生成 16:9、4:3、21:9 小组件截图，检查尺寸、字号、对齐和横向溢出。
+- [ ] `npm run test:ui-layout` 以 150% 缩放检查浅色主题和长文本，并人工确认窗口位置/尺寸恢复后仍位于当前显示器工作区。
 - [ ] `npm run test:tray` 与 `npm run test:window-icon` 在开发态通过。
 - [ ] 构建后运行 `npm run test:packaged`，确认解包版随包图标、托盘、窗口身份、`AppUserModelID` 与 Electron Fuse 状态。
 - [ ] `npm run test:release-contract` 断言 Desktop、两份插件清单、Handoff 协议和公开安装标签一致。
