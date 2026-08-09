@@ -10,7 +10,8 @@
 - [ ] `npm run test:compact-mode` 生成 16:9、4:3、21:9 三种简洁小组件截图，检查四项数据的尺寸、对齐和长文本不截断。
 - [ ] `npm run test:tray` 与 `npm run test:window-icon` 在开发态通过。
 - [ ] 构建后运行 `npm run test:packaged`，确认解包版随包图标、托盘、窗口身份与 `AppUserModelID`。
-- [ ] `npm run test:secondary-health` 断言压力卡片与旧快照血氧回退。
+- [ ] `npm run test:release-contract` 断言 Desktop、两份插件清单、Handoff 协议和公开安装标签一致。
+- [ ] `npm run test:secondary-health` 使用动态当前时间断言压力卡片与旧快照血氧回退。
 - [ ] `npm run test:unavailable` 断言无真实快照/同源缓存时不显示任何 Demo 健康数值。
 - [ ] `npm run test:local-security` 断言 Handoff 身份证明、随机令牌、加密存储信封与留存策略。
 - [ ] `npm run test:snapshot-policy` 断言时间戳/日期、活动数量、`data_insufficient` 与 `stop_refer` 安全门。

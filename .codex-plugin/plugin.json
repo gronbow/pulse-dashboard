@@ -1,6 +1,6 @@
 {
   "name": "pulse-dashboard",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "description": "Codex-hosted Pulse health and training dashboard companion for an already connected COROS MCP service.",
   "author": {
     "name": "Pulse contributors"
@@ -29,8 +29,7 @@
     "defaultPrompt": [
       "刷新我的 Pulse 今日健康与训练快照。",
       "根据我最新的 COROS 数据，给出明日训练建议。",
-      "复盘我今天的训练，并更新 Pulse 洞察。",
-      "刷新 Pulse 简洁小组件，显示步数、今日消耗、静息心率和睡眠时长。"
+      "复盘我今天的训练，并更新 Pulse 洞察。"
     ],
     "brandColor": "#B7F34A"
   }

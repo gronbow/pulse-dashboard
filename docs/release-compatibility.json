@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "version": "0.5.6",
+    "releaseChannel": "beta",
+    "handoffProtocolVersion": 2,
+    "status": "candidate"
+  },
+  "publishedPairs": [
+    {
+      "desktopVersion": "0.5.5",
+      "pluginRef": "v0.5.5-beta",
+      "handoffProtocolVersion": 1,
+      "status": "published"
+    }
+  ]
+}
