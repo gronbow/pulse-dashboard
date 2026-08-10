@@ -95,6 +95,17 @@ for (const [level, label] of recoveryLabels) {
   assert.equal(presentation.recovery.label, label);
 }
 
+for (const level of ['toString', 'constructor', '__proto__']) {
+  const presentation = buildSafetyPresentation({
+    health: { recovery: { level } },
+    readiness: { status: 'ready' }
+  });
+  assert.deepEqual(presentation.recovery, {
+    label: '按状态调整',
+    prescriptive: true
+  });
+}
+
 const readyFallback = buildSafetyPresentation({
   insight: {},
   plan: { name: '恢复跑' },

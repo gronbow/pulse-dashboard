@@ -72,7 +72,9 @@
         tags: Array.isArray(insight.tags) ? [...insight.tags] : []
       },
       recovery: {
-        label: RECOVERY_LABELS[recoveryLevel] || RECOVERY_LABELS.fallback,
+        label: Object.hasOwn(RECOVERY_LABELS, recoveryLevel)
+          ? RECOVERY_LABELS[recoveryLevel]
+          : RECOVERY_LABELS.fallback,
         prescriptive: true
       },
       plan: {
