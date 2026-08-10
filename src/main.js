@@ -515,6 +515,31 @@ function smokeTextExpectations() {
   });
 }
 
+function smokeAttributeExpectations() {
+  if (app.isPackaged) return [];
+  const raw = String(process.env.PULSE_SMOKE_ATTRIBUTE_EXPECTATIONS || '').trim();
+  if (!raw) return [];
+  const parsed = JSON.parse(raw);
+  if (!Array.isArray(parsed)) {
+    throw new Error('smoke attribute expectations must be a JSON array');
+  }
+  return parsed.map((entry) => {
+    const selector = String(entry?.selector || '');
+    const attribute = String(entry?.attribute || '');
+    const expected = String(entry?.expected || '');
+    if (!/^(?:body|[#.][A-Za-z0-9_-]+)$/.test(selector) || selector.length > 80) {
+      throw new Error(`invalid smoke attribute selector: ${selector}`);
+    }
+    if (!/^(?:role|aria-live|data-safety-rule)$/.test(attribute)) {
+      throw new Error(`invalid smoke attribute name: ${attribute}`);
+    }
+    if (!expected || expected.length > 100) {
+      throw new Error(`invalid smoke attribute value for ${selector}`);
+    }
+    return { selector, attribute, expected };
+  });
+}
+
 function smokeLayoutAuditMode() {
   if (app.isPackaged) return '';
   const mode = String(process.env.PULSE_SMOKE_LAYOUT_AUDIT || '').trim();
@@ -588,6 +613,18 @@ async function captureSmokeScreenshot(outputPath) {
       throw new Error(
         `smoke text mismatch for ${expectation.selector}: expected ${JSON.stringify(expectation.text)}, `
         + `received ${JSON.stringify(actual)}`
+      );
+    }
+  }
+  for (const expectation of smokeAttributeExpectations()) {
+    const actual = await mainWindow.webContents.executeJavaScript(
+      `document.querySelector(${JSON.stringify(expectation.selector)})?.getAttribute(${JSON.stringify(expectation.attribute)}) || ''`,
+      true
+    );
+    if (actual !== expectation.expected) {
+      throw new Error(
+        `smoke attribute mismatch for ${expectation.selector}[${expectation.attribute}]: `
+        + `expected ${JSON.stringify(expectation.expected)}, received ${JSON.stringify(actual)}`
       );
     }
   }

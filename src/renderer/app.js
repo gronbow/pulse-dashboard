@@ -160,6 +160,8 @@ function renderLoadBars(entries) {
 function render(snapshotData) {
   snapshot = snapshotData;
   const { health = {}, todayActivities = [], plan = {}, load = {}, trends = {}, insight = {}, readiness = {}, meta = {} } = snapshot;
+  const safetyPresentation = window.PulseSafetyPresentation.buildSafetyPresentation(snapshot);
+  document.body.dataset.safetyRule = safetyPresentation.ruleId;
   const source = meta.source || 'demo';
   const timezone = meta.timezone || config?.timezone || 'Asia/Shanghai';
   const asOf = new Date(meta.asOf || Date.now());
@@ -205,24 +207,26 @@ function render(snapshotData) {
   setText('#insight-button', config?.dataSource === 'codex' ? '读取最新' : '重新生成');
 
   const readinessChip = $('#readiness-chip');
-  const confidenceLabels = { low: '低可信度', moderate: '中可信度', high: '高可信度' };
-  const healthSignalCount = Number(readiness.coverage?.healthSignals || 0);
-  if (readiness.status === 'stop_refer') {
+  if (safetyPresentation.mode === 'stop_refer') {
     readinessChip.textContent = '安全优先 · 停止训练';
     readinessChip.className = 'readiness-chip stop';
-  } else if (readiness.status === 'ready') {
-    readinessChip.textContent = `可建议 · ${confidenceLabels[readiness.confidence] || '中可信度'}`;
+  } else if (safetyPresentation.mode === 'ready') {
+    readinessChip.textContent = '状态已确认';
     readinessChip.className = 'readiness-chip ready';
   } else {
-    readinessChip.textContent = `数据不足 · ${healthSignalCount} 项客观信号`;
+    readinessChip.textContent = '数据不足';
     readinessChip.className = 'readiness-chip insufficient';
   }
   readinessChip.title = readiness.coverage?.subjectiveComplete
     ? '已包含当前主观疲劳与安全确认'
     : '未完整确认疲劳、酸痛、疼痛、疾病、胸部症状和头晕';
 
-  setText('#insight-text', insight.text || '暂无洞察，请点击重新生成。');
-  $('#insight-tags').innerHTML = (insight.tags || []).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('');
+  const insightText = $('#insight-text');
+  insightText.setAttribute('role', safetyPresentation.announcement.role);
+  insightText.setAttribute('aria-live', safetyPresentation.announcement.politeness);
+  insightText.textContent = safetyPresentation.insight.text;
+  $('#insight-tags').innerHTML = safetyPresentation.insight.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('');
+  $('.insight-card').dataset.safetyMode = safetyPresentation.mode;
 
   const totalSeconds = todayActivities.reduce((sum, activity) => sum + (activity.durationSeconds || 0), 0);
   const totalDistance = todayActivities.reduce((sum, activity) => sum + (activity.distanceKm || 0), 0);
@@ -261,15 +265,8 @@ function render(snapshotData) {
     asOfKey
   ));
   setText('#recovery-value', health.recovery?.value == null ? '—' : `${health.recovery.value}%`);
-  const recoveryLabels = {
-    heavy_training_allowed: '可进行较高负荷',
-    training_as_planned: '可按计划训练',
-    easy_training_recommended: '建议轻松训练',
-    rest_recommended: '建议恢复或休息',
-    unknown: '暂无判断'
-  };
   setText('#recovery-level', datedNote(
-    recoveryLabels[health.recovery?.level] || '按状态调整',
+    safetyPresentation.recovery.label,
     health.recovery?.date,
     asOfKey
   ));
@@ -291,10 +288,18 @@ function render(snapshotData) {
     : datedNote(health.spo2?.value == null ? '设备未提供' : '最近有效值', health.spo2?.date, asOfKey));
 
   const planDateLabel = plan.date && plan.date !== asOfKey ? shortDateLabel(plan.date) : '';
-  const planTitle = plan.title || '未设置训练计划';
+  const planTitle = `${safetyPresentation.plan.titlePrefix}${plan.title || '未设置训练计划'}`;
   setText('#plan-title', planDateLabel ? `${planDateLabel} · ${planTitle}` : planTitle);
-  setText('#plan-description', plan.description || plan.name || '今天没有计划安排');
-  setText('#plan-load', plan.load == null ? '—' : `训练负荷 ${plan.load}`);
+  setText('#plan-description', safetyPresentation.plan.description);
+  const planLoad = $('#plan-load');
+  planLoad.hidden = !safetyPresentation.plan.loadVisible;
+  if (safetyPresentation.plan.loadVisible) {
+    planLoad.textContent = plan.load == null ? '—' : `训练负荷 ${plan.load}`;
+  }
+  const planState = $('#plan-state');
+  planState.textContent = safetyPresentation.plan.stateLabel;
+  planState.hidden = !safetyPresentation.plan.stateLabel;
+  $('.plan-card').dataset.safetyMode = safetyPresentation.mode;
   const loadSummary = [
     load.shortTerm == null ? '' : `短 ${load.shortTerm}`,
     load.longTerm == null ? '' : `长 ${load.longTerm}`,
@@ -339,18 +344,25 @@ async function refresh() {
   }
 }
 
-async function regenerateInsight() {
+async function regenerateInsight(generateInsight = window.pulseDesktop.generateInsight) {
   if (config.dataSource === 'codex') {
     await refresh();
     return;
   }
+  const currentSafety = window.PulseSafetyPresentation.buildSafetyPresentation(snapshot);
+  if (currentSafety.mode !== 'ready') {
+    render(snapshot);
+    return;
+  }
   $('#insight-button').disabled = true;
-  setText('#insight-text', '正在基于最新数据生成洞察……');
   try {
-    const result = await window.pulseDesktop.generateInsight(snapshot);
-    setText('#insight-text', result.text);
+    const result = await generateInsight(snapshot);
+    snapshot = { ...snapshot, insight: result };
+    render(snapshot);
   } catch (error) {
-    setText('#insight-text', `生成失败：${error.message}`);
+    render(snapshot);
+    $('#error-banner').hidden = false;
+    setText('#error-banner', `洞察生成失败：${error.message}`);
   } finally {
     $('#insight-button').disabled = false;
   }
@@ -449,7 +461,7 @@ async function clearLocalData() {
 }
 
 $('#refresh-button').addEventListener('click', refresh);
-$('#insight-button').addEventListener('click', regenerateInsight);
+$('#insight-button').addEventListener('click', () => regenerateInsight());
 $('#settings-button').addEventListener('click', openSettings);
 $('#hide-button').addEventListener('click', () => window.pulseDesktop.hide());
 $('#compact-refresh-button').addEventListener('click', refresh);
