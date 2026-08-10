@@ -158,6 +158,45 @@ stopped.insight.tags.push('调用方修改');
 stopped.plan.description = '调用方修改';
 assert.deepEqual(stoppedAgain, expectedStopped);
 
+function assertReadinessFailsClosed(candidate, caseName) {
+  const presentation = buildSafetyPresentation(candidate);
+  assert.deepEqual(presentation, expectedInsufficient, `${caseName} must fail closed`);
+  const serialized = JSON.stringify(presentation);
+  assert.equal(serialized.includes(snapshot.insight.text), false, `${caseName} passed raw insight`);
+  assert.equal(serialized.includes(snapshot.plan.description), false, `${caseName} passed raw plan`);
+}
+
+const inheritedTopLevelReadiness = Object.create({ readiness: { status: 'ready' } });
+inheritedTopLevelReadiness.health = snapshot.health;
+inheritedTopLevelReadiness.insight = snapshot.insight;
+inheritedTopLevelReadiness.plan = snapshot.plan;
+assertReadinessFailsClosed(inheritedTopLevelReadiness, 'inherited top-level readiness');
+
+assertReadinessFailsClosed({
+  ...snapshot,
+  readiness: Object.create({ status: 'ready' })
+}, 'inherited readiness status');
+
+const previousStatusDescriptor = Object.getOwnPropertyDescriptor(Object.prototype, 'status');
+Object.defineProperty(Object.prototype, 'status', {
+  configurable: true,
+  value: 'ready',
+  writable: true
+});
+try {
+  assertReadinessFailsClosed({
+    insight: snapshot.insight,
+    plan: snapshot.plan,
+    readiness: {}
+  }, 'Object.prototype.status pollution');
+} finally {
+  if (previousStatusDescriptor) {
+    Object.defineProperty(Object.prototype, 'status', previousStatusDescriptor);
+  } else {
+    delete Object.prototype.status;
+  }
+}
+
 for (const malformedSnapshot of [
   { readiness: { status: 'future_state' } },
   {},

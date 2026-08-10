@@ -57,7 +57,12 @@
   }
 
   function buildSafetyPresentation(snapshot) {
-    const status = snapshot?.readiness?.status;
+    const readiness = snapshot && typeof snapshot === 'object' && Object.hasOwn(snapshot, 'readiness')
+      ? snapshot.readiness
+      : null;
+    const status = readiness && typeof readiness === 'object' && Object.hasOwn(readiness, 'status')
+      ? readiness.status
+      : undefined;
     if (status === 'stop_refer') return clonePolicy(STOPPED);
     if (status !== 'ready') return clonePolicy(INSUFFICIENT);
 
