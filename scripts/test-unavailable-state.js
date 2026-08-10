@@ -12,7 +12,7 @@ const result = spawnSync(process.execPath, [path.join(__dirname, 'test-electron-
       '#source-badge': '等待首次同步',
       '#rhr-value': '—',
       '#sleep-value': '—',
-      '#insight-text': '尚未收到真实 COROS 快照',
+      '#insight-text': '当前缺少完整的主观疲劳与安全确认，仅展示客观数据，不提供训练强度建议。',
       '#error-banner': '等待 Codex 快照'
     })
   },
