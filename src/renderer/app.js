@@ -344,7 +344,7 @@ async function refresh() {
   }
 }
 
-async function regenerateInsight() {
+async function regenerateInsight(generateInsight = window.pulseDesktop.generateInsight) {
   if (config.dataSource === 'codex') {
     await refresh();
     return;
@@ -355,13 +355,14 @@ async function regenerateInsight() {
     return;
   }
   $('#insight-button').disabled = true;
-  setText('#insight-text', '正在基于最新数据生成洞察……');
   try {
-    const result = await window.pulseDesktop.generateInsight(snapshot);
+    const result = await generateInsight(snapshot);
     snapshot = { ...snapshot, insight: result };
     render(snapshot);
   } catch (error) {
-    setText('#insight-text', `生成失败：${error.message}`);
+    render(snapshot);
+    $('#error-banner').hidden = false;
+    setText('#error-banner', `洞察生成失败：${error.message}`);
   } finally {
     $('#insight-button').disabled = false;
   }
@@ -460,7 +461,7 @@ async function clearLocalData() {
 }
 
 $('#refresh-button').addEventListener('click', refresh);
-$('#insight-button').addEventListener('click', regenerateInsight);
+$('#insight-button').addEventListener('click', () => regenerateInsight());
 $('#settings-button').addEventListener('click', openSettings);
 $('#hide-button').addEventListener('click', () => window.pulseDesktop.hide());
 $('#compact-refresh-button').addEventListener('click', refresh);
