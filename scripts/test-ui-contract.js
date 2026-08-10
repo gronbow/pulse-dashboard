@@ -5,6 +5,7 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'src', 'renderer', 'index.html'), 'utf8');
 const styles = fs.readFileSync(path.join(root, 'src', 'renderer', 'styles.css'), 'utf8');
+const renderer = fs.readFileSync(path.join(root, 'src', 'renderer', 'app.js'), 'utf8');
 const main = fs.readFileSync(path.join(root, 'src', 'main.js'), 'utf8');
 const config = fs.readFileSync(path.join(root, 'src', 'config.js'), 'utf8');
 
@@ -38,9 +39,16 @@ for (const [label, foreground, background] of [
 
 assert.match(html, /class="icon-sprite"/);
 assert.match(html, /aria-live="polite"/);
+assert.match(html, /id="plan-state"/);
+assert.match(html, /<script src="\.\.\/safety-presentation\.js"><\/script>\s*<script src="app\.js"><\/script>/);
 assert.doesNotMatch(html, /[⚙⌁☾♥∿]/, 'UI icons must use the bundled SVG symbol set');
 assert.match(styles, /:focus-visible/);
 assert.doesNotMatch(styles, /\.switch-row input\s*\{[^}]*display:\s*none/s);
+assert.match(renderer, /PulseSafetyPresentation\.buildSafetyPresentation\(snapshot\)/);
+assert.match(renderer, /document\.body\.dataset\.safetyRule\s*=\s*safetyPresentation\.ruleId/);
+assert.match(renderer, /setAttribute\(['"]role['"],\s*safetyPresentation\.announcement\.role\)/);
+assert.match(renderer, /setAttribute\(['"]aria-live['"],\s*safetyPresentation\.announcement\.politeness\)/);
+assert.match(renderer, /currentSafety\.mode\s*!==\s*['"]ready['"]/);
 assert.doesNotMatch(main, /mainWindow\.setOpacity/);
 assert.match(main, /clampWindowBounds/);
 assert.match(config, /windowBounds/);

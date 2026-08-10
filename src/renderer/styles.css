@@ -58,6 +58,8 @@ h1 { margin: 1px 0 0; font-size: 19px; letter-spacing: -.04em; }
 .refresh-button:disabled, .text-button:disabled { opacity: .5; cursor: wait; }
 .error-banner { margin: 0 0 10px; padding: 10px 12px; border: 1px solid rgba(255, 179, 111, .42); border-radius: 12px; background: rgba(255, 179, 111, .1); color: var(--orange); font-size: 12px; line-height: 1.5; }
 .card { margin-bottom: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: rgba(22, 27, 28, var(--panel-alpha)); backdrop-filter: blur(18px); }
+.card[data-safety-mode="data_insufficient"] { border-color: rgba(255,179,111,.34); }
+.card[data-safety-mode="stop_refer"] { border-color: rgba(255,105,105,.4); }
 .card-heading { gap: 10px; }
 .insight-card { background: linear-gradient(135deg, rgba(44, 59, 34, var(--panel-alpha)), rgba(22, 29, 28, var(--panel-alpha))); border-color: rgba(183, 243, 74, .3); }
 .insight-actions { display: flex; min-width: 0; align-items: center; justify-content: flex-end; gap: 8px; }
@@ -95,6 +97,10 @@ h1 { margin: 1px 0 0; font-size: 19px; letter-spacing: -.04em; }
 .spo2-icon { background: rgba(130, 190, 255, .13); color: #8ec7ff; }
 .metric-card strong { display: block; margin-top: 5px; font-size: 24px; letter-spacing: -.045em; }
 .metric-note { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; line-height: 1.35; }
+.plan-heading-meta { display: flex; min-width: 0; align-items: center; justify-content: flex-end; gap: 7px; }
+.plan-state { padding: 4px 7px; border-radius: 7px; font-size: 10px; line-height: 1.25; font-weight: 700; }
+.card[data-safety-mode="data_insufficient"] .plan-state { color: var(--orange); background: rgba(255,179,111,.12); }
+.card[data-safety-mode="stop_refer"] .plan-state { color: #ffabab; background: rgba(255,105,105,.14); }
 .plan-row { display: flex; align-items: center; gap: 11px; margin-top: 13px; }
 .plan-row > div:last-child { min-width: 0; }
 .plan-symbol { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: var(--green-soft); color: var(--accent); font-size: 20px; }
@@ -180,6 +186,7 @@ body.light .insight-card { background: linear-gradient(135deg, rgba(231, 246, 20
 body.light .settings-dialog { background: #f9fcf9; }
 body.light .settings-dialog input[type=url], body.light .settings-dialog select { color: var(--text); background: #eef4ef; }
 body.light .tag { color: #315300; background: rgba(66, 106, 0, .12); }
+body.light .card[data-safety-mode="stop_refer"] .plan-state { color: #8f2020; background: rgba(143,32,32,.11); }
 body.light .secondary-button { color: #46534b; background: rgba(23, 32, 25, .08); }
 body.light .dashboard-scroll::-webkit-scrollbar-thumb { background: rgba(23, 32, 25, .32); background-clip: padding-box; }
 

@@ -91,7 +91,7 @@
           <div class="section-label"><span class="pulse-dot"></span> AI 今日洞察</div>
           <div class="insight-actions"><span id="readiness-chip" class="readiness-chip insufficient">数据不足</span><button id="insight-button" class="text-button" type="button">重新生成</button></div>
         </div>
-        <p id="insight-text" class="insight-text" aria-live="polite">正在加载今日状态……</p>
+        <p id="insight-text" class="insight-text">正在加载今日状态……</p>
         <div id="insight-tags" class="tag-row"></div>
         <p class="muted tiny">仅供训练参考，不构成医疗建议</p>
       </section>
@@ -152,7 +152,10 @@
       <section class="card plan-card">
         <div class="card-heading">
           <div class="section-label">训练计划</div>
-          <span id="plan-load" class="muted tiny">—</span>
+          <div class="plan-heading-meta">
+            <span id="plan-state" class="plan-state" hidden></span>
+            <span id="plan-load" class="muted tiny">—</span>
+          </div>
         </div>
         <div class="plan-row">
           <div class="plan-symbol"><svg class="metric-svg" aria-hidden="true"><use href="#icon-arrow"></use></svg></div>
@@ -217,6 +220,7 @@
         <div class="dialog-actions"><button id="cancel-settings-button" type="button" class="secondary-button">取消</button><button id="save-settings" type="submit" class="primary-button">保存设置</button></div>
       </form>
     </dialog>
+    <script src="../safety-presentation.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
