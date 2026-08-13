@@ -530,7 +530,7 @@ function smokeAttributeExpectations() {
     if (!/^(?:body|[#.][A-Za-z0-9_-]+)$/.test(selector) || selector.length > 80) {
       throw new Error(`invalid smoke attribute selector: ${selector}`);
     }
-    if (!/^(?:role|aria-live|data-safety-rule)$/.test(attribute)) {
+    if (!/^(?:role|aria-live|data-safety-rule|data-trust-state)$/.test(attribute)) {
       throw new Error(`invalid smoke attribute name: ${attribute}`);
     }
     if (!expected || expected.length > 100) {

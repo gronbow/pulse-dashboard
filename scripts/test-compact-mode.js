@@ -9,7 +9,11 @@ const expectations = JSON.stringify({
   '#compact-steps': '9,551',
   '#compact-calories': '510',
   '#compact-rhr': '53',
-  '#compact-sleep': '6h 32m'
+  '#compact-sleep': '6h 32m',
+  '#compact-steps-meta': '7/24',
+  '#compact-calories-meta': '7/24',
+  '#compact-rhr-meta': '7/24',
+  '#compact-sleep-meta': '7/24'
 });
 
 const cases = [

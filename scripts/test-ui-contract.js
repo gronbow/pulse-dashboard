@@ -40,11 +40,13 @@ for (const [label, foreground, background] of [
 assert.match(html, /class="icon-sprite"/);
 assert.match(html, /aria-live="polite"/);
 assert.match(html, /id="plan-state"/);
-assert.match(html, /<script src="\.\.\/safety-presentation\.js"><\/script>\s*<script src="app\.js"><\/script>/);
+assert.match(html, /<script src="\.\.\/data-trust\.js"><\/script>\s*<script src="\.\.\/safety-presentation\.js"><\/script>\s*<script src="app\.js"><\/script>/);
 assert.doesNotMatch(html, /[⚙⌁☾♥∿]/, 'UI icons must use the bundled SVG symbol set');
 assert.match(styles, /:focus-visible/);
 assert.doesNotMatch(styles, /\.switch-row input\s*\{[^}]*display:\s*none/s);
 assert.match(renderer, /PulseSafetyPresentation\.buildSafetyPresentation\(snapshot\)/);
+assert.match(renderer, /PulseDataTrust\.buildDataTrust/);
+assert.doesNotMatch(renderer, /\.innerHTML\s*=/, 'renderer must build untrusted snapshot content with DOM nodes');
 assert.match(renderer, /document\.body\.dataset\.safetyRule\s*=\s*safetyPresentation\.ruleId/);
 assert.match(renderer, /setAttribute\(['"]role['"],\s*safetyPresentation\.announcement\.role\)/);
 assert.match(renderer, /setAttribute\(['"]aria-live['"],\s*safetyPresentation\.announcement\.politeness\)/);

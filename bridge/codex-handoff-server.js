@@ -33,7 +33,11 @@ function resolveHandoffPath(environment = process.env) {
 }
 
 function json(response, status, body) {
-  response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+  response.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff'
+  });
   response.end(JSON.stringify(body));
 }
 

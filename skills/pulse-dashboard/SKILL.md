@@ -20,7 +20,7 @@ Pulse 是 Codex 中 COROS MCP 健康教练的桌面呈现能力。它不管理 C
 1. 使用用户时区；默认 `Asia/Shanghai`，除非用户明确给出其他时区。
 2. 尽量并行读取最近 7 日的日常健康摘要（包括步数和日均压力）、睡眠、静息心率、睡眠 HRV 和短长期训练负荷，同时读取当前恢复状态、今日运动记录及今日到近期的训练计划。仅调用 COROS MCP 当前确实提供的工具，不假定不存在的字段或端点。
 3. 今日运动列表若只有距离、没有时长、心率或训练效果，应继续读取该活动的详情。不得把“有距离但时长为 0”的记录发布为已完成训练。
-4. 将数据归一化为 Pulse 快照：`meta`、`health`、`todayActivities`、`plan`、`load`、`trends` 和 `insight`。日均压力写入 `health.stress = { value, unit: "score", date }`，取值必须来自 COROS 日常健康摘要；缺失值必须使用 `null`、空数组或“暂无数据”，不能用 `0` 冒充已读取结果。
+4. 将数据归一化为 Pulse 快照：`meta`、`health`、`todayActivities`、`plan`、`load`、`trends` 和 `insight`。日均压力写入 `health.stress = { value, unit: "score", date }`，取值必须来自 COROS 日常健康摘要；缺失值必须使用 `null`、空数组或“暂无数据”，不能用 `0` 冒充已读取结果。每个健康指标、活动、计划和负荷都应尽量写入 `provenance`：COROS 直接读取值使用 `"coros"`，算术汇总使用 `"derived"`，用户主观确认使用 `"user"`；只允许 `coros`、`derived`、`user`、`demo`、`local`、`mixed`、`unknown`。`meta.source` 表示传输路径，不得拿它冒充指标来源；来源字段不得包含工具名、端点、账户、活动 ID 或坐标。
 5. 当当天睡眠、静息心率或睡眠 HRV 尚未归档时，可采用最近 7 日内最新的有效值，但必须在对应指标写入真实 `date`（`YYYY-MM-DD`）；不得把前一日值标成今日值。步数、日均压力和恢复状态同样写入各自数据日期。
 6. `trends.trainingLoad` 必须尽量包含最近 7 日逐日记录，按日期从旧到新排列；每项使用 `{ date, shortTerm, longTerm, ratio, comment }`。`load` 保存最新一天的短期负荷、长期负荷、比值和评价。
 7. 训练计划写入实际 `plan.date`。若今天无活动，只能写“截至快照时间暂无训练记录”；仅在计划明确为休息日时才判断“休息日”。若今天无课表而近期有课表，可展示最近下一课并保留其真实日期。
@@ -40,6 +40,7 @@ Pulse 是 Codex 中 COROS MCP 健康教练的桌面呈现能力。它不管理 C
 - 任何距离大于 0 的活动都包含大于 0 的时长。
 - 中文运动名称、计划和洞察保持 UTF-8，无成串问号或替换字符。
 - 最近 7 日训练负荷可用时，必须发布为 `trends.trainingLoad`，不能只发布最新比值。
+- 已提供的 `provenance` 必须属于允许枚举，且与数据实际来源一致；不确定时使用 `unknown`，不得根据数值内容猜测来源。
 - `meta.asOf` 与 `meta.lastUpdated` 必须是有效 ISO 8601 时间；发布时 `lastUpdated` 不得早于 36 小时前，也不得写入未来时间。
 - 今日活动最多 32 条、洞察标签最多 8 个、逐日负荷最多 31 条；各指标日期必须是有效 `YYYY-MM-DD`，不能晚于快照日期后的次日。
 - 必须包含显式 `readiness`。主观状态未知时使用 `data_insufficient`，不得省略该字段或假定用户无疼痛/疾病。
