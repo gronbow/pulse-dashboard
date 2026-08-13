@@ -156,4 +156,28 @@ const mismatchedCache = resolveFallbackSnapshot({
 }, { provider: 'codex-coros-mcp', error: 'offline' });
 assert.equal(mismatchedCache.meta.source, 'unavailable');
 assert.equal(mismatchedCache.health.restingHeartRate.value, null);
+
+const provenanceSnapshot = normalizeSnapshot({
+  meta: {
+    source: 'bridge',
+    provider: 'codex-coros-mcp',
+    asOf: '2026-08-13T04:00:00Z',
+    lastUpdated: '2026-08-13T04:00:00Z',
+    timezone: 'Asia/Shanghai'
+  },
+  health: {
+    sleep: { durationMinutes: 420, date: '2026-08-13', provenance: 'coros' },
+    restingHeartRate: { value: 52, date: '2026-08-13' },
+    hrv: { value: 80, date: '2026-08-13', provenance: 'future-provider' }
+  },
+  todayActivities: [{ sport: 'Run', durationSeconds: 1_800, provenance: 'coros' }],
+  plan: { title: 'Easy run', date: '2026-08-13', provenance: 'coros' },
+  load: { shortTerm: 60, provenance: 'derived' }
+});
+assert.equal(provenanceSnapshot.health.sleep.provenance, 'coros');
+assert.equal(provenanceSnapshot.health.restingHeartRate.provenance, 'coros');
+assert.equal(provenanceSnapshot.health.hrv.provenance, 'unknown');
+assert.equal(provenanceSnapshot.todayActivities[0].provenance, 'coros');
+assert.equal(provenanceSnapshot.plan.provenance, 'coros');
+assert.equal(provenanceSnapshot.load.provenance, 'derived');
 console.log('Snapshot normalization passed: placeholders become unavailable values and COROS aliases are preserved.');

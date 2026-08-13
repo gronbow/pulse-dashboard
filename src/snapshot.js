@@ -1,4 +1,5 @@
 const SNAPSHOT_VERSION = 2;
+const { inferProvenance, normalizeProvenance } = require('./data-trust');
 const {
   FUTURE_TOLERANCE_MINUTES,
   MAX_SNAPSHOT_AGE_HOURS,
@@ -47,6 +48,18 @@ function normalizeDateKey(value) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
 }
 
+function optionalProvenance(value) {
+  return value && typeof value === 'object' && Object.hasOwn(value, 'provenance')
+    ? { provenance: normalizeProvenance(value.provenance) }
+    : {};
+}
+
+function metricProvenance(value, fallback) {
+  return value && typeof value === 'object' && Object.hasOwn(value, 'provenance')
+    ? normalizeProvenance(value.provenance)
+    : fallback;
+}
+
 function listOfTrainingLoad(value, limit = 7) {
   if (!Array.isArray(value)) return [];
   const byDate = new Map();
@@ -59,7 +72,8 @@ function listOfTrainingLoad(value, limit = 7) {
       shortTerm: finiteNumber(item.shortTerm, null, 0, 10_000),
       longTerm: finiteNumber(item.longTerm, null, 0, 10_000),
       ratio: finiteNumber(item.ratio, null, 0, 10),
-      comment: text(item.comment, '')
+      comment: text(item.comment, ''),
+      ...optionalProvenance(item)
     };
     if (point.shortTerm === null && point.longTerm === null && point.ratio === null) continue;
     byDate.set(date, point);
@@ -165,7 +179,7 @@ function effectiveReadiness(snapshot, now = Date.now()) {
   return readiness;
 }
 
-function normalizeActivity(activity) {
+function normalizeActivity(activity, defaultProvenance = 'unknown') {
   if (!activity || typeof activity !== 'object') return null;
   const distanceKm = finiteNumber(activity.distanceKm, 0, 0, 1000);
   const durationSeconds = finiteNumber(activity.durationSeconds, 0, 0, 86_400);
@@ -181,7 +195,8 @@ function normalizeActivity(activity) {
     distanceKm,
     paceSecondsPerKm: finiteNumber(rawPace, inferredPace > 0 ? inferredPace : null, 1, 3_600),
     heartRate: finiteNumber(rawHeartRate, null, 20, 240),
-    calories: finiteNumber(rawCalories, null, 1, 20_000)
+    calories: finiteNumber(rawCalories, null, 1, 20_000),
+    provenance: metricProvenance(activity, defaultProvenance)
   };
 }
 
@@ -200,72 +215,85 @@ function normalizeSnapshot(input, metaOverrides = {}, { now = Date.now() } = {})
   const rawTrends = raw.trends && typeof raw.trends === 'object' ? raw.trends : {};
   const rawInsight = raw.insight && typeof raw.insight === 'object' ? raw.insight : {};
   const nowIso = new Date(now).toISOString();
+  const normalizedMeta = {
+    source: text(metaOverrides.source || raw.meta?.source, 'demo'),
+    provider: text(metaOverrides.provider || raw.meta?.provider, 'unknown'),
+    asOf: validDate(raw.meta?.asOf, nowIso),
+    lastUpdated: validDate(raw.meta?.lastUpdated, nowIso),
+    timezone: text(raw.meta?.timezone, 'Asia/Shanghai'),
+    ...(metaOverrides.error ? { error: text(metaOverrides.error) } : {})
+  };
+  const defaultProvenance = inferProvenance(normalizedMeta);
 
   const normalized = {
     version: SNAPSHOT_VERSION,
-    meta: {
-      source: text(metaOverrides.source || raw.meta?.source, 'demo'),
-      provider: text(metaOverrides.provider || raw.meta?.provider, 'unknown'),
-      asOf: validDate(raw.meta?.asOf, nowIso),
-      lastUpdated: validDate(raw.meta?.lastUpdated, nowIso),
-      timezone: text(raw.meta?.timezone, 'Asia/Shanghai'),
-      ...(metaOverrides.error ? { error: text(metaOverrides.error) } : {})
-    },
+    meta: normalizedMeta,
     health: {
       restingHeartRate: {
         value: finiteNumber(rawRhr.value, null, 20, 240),
         unit: 'bpm',
         trend: finiteNumber(rawRhr.trend, null, -100, 100),
-        date: normalizeDateKey(rawRhr.date ?? rawRhr.asOf)
+        date: normalizeDateKey(rawRhr.date ?? rawRhr.asOf),
+        provenance: metricProvenance(rawRhr, defaultProvenance)
       },
       hrv: {
         value: finiteNumber(rawHrv.value, null, 1, 500),
         unit: 'ms',
         status: text(rawHrv.status, 'unavailable'),
-        date: normalizeDateKey(rawHrv.date ?? rawHrv.asOf)
+        date: normalizeDateKey(rawHrv.date ?? rawHrv.asOf),
+        provenance: metricProvenance(rawHrv, defaultProvenance)
       },
       stress: {
         value: finiteNumber(rawStress.value, null, 1, 100),
         unit: 'score',
-        date: normalizeDateKey(rawStress.date ?? rawStress.asOf)
+        date: normalizeDateKey(rawStress.date ?? rawStress.asOf),
+        provenance: metricProvenance(rawStress, defaultProvenance)
       },
       sleep: {
         durationMinutes: finiteNumber(rawSleep.durationMinutes, null, 1, 1_440),
         score: finiteNumber(rawSleep.score, null, 1, 100),
-        date: normalizeDateKey(rawSleep.date ?? rawSleep.asOf)
+        date: normalizeDateKey(rawSleep.date ?? rawSleep.asOf),
+        provenance: metricProvenance(rawSleep, defaultProvenance)
       },
       spo2: {
         value: finiteNumber(rawSpo2.value, null, 1, 100),
         unit: '%',
         status: text(rawSpo2.status, 'unavailable'),
-        date: normalizeDateKey(rawSpo2.date ?? rawSpo2.asOf)
+        date: normalizeDateKey(rawSpo2.date ?? rawSpo2.asOf),
+        provenance: metricProvenance(rawSpo2, defaultProvenance)
       },
       steps: {
         value: finiteNumber(rawSteps.value, null, 0, 200_000),
         unit: 'steps',
-        date: normalizeDateKey(rawSteps.date ?? rawSteps.asOf)
+        date: normalizeDateKey(rawSteps.date ?? rawSteps.asOf),
+        provenance: metricProvenance(rawSteps, defaultProvenance)
       },
       recovery: {
         value: finiteNumber(rawRecovery.value, null, 1, 100),
         unit: '%',
         level: text(rawRecovery.level, 'unknown'),
-        date: normalizeDateKey(rawRecovery.date ?? rawRecovery.asOf)
+        date: normalizeDateKey(rawRecovery.date ?? rawRecovery.asOf),
+        provenance: metricProvenance(rawRecovery, defaultProvenance)
       }
     },
-    todayActivities: Array.isArray(raw.todayActivities) ? raw.todayActivities.map(normalizeActivity).filter(Boolean) : [],
+    todayActivities: Array.isArray(raw.todayActivities)
+      ? raw.todayActivities.map((activity) => normalizeActivity(activity, defaultProvenance)).filter(Boolean)
+      : [],
     plan: {
       name: text(rawPlan.name, ''),
       status: text(rawPlan.status, 'unknown'),
       title: text(rawPlan.title, ''),
       description: text(rawPlan.description, ''),
       load: finiteNumber(rawPlan.load, null, 0, 10_000),
-      date: normalizeDateKey(rawPlan.date ?? rawPlan.scheduledDate)
+      date: normalizeDateKey(rawPlan.date ?? rawPlan.scheduledDate),
+      provenance: metricProvenance(rawPlan, defaultProvenance)
     },
     load: {
       comment: text(rawLoad.comment, ''),
       shortTerm: finiteNumber(rawLoad.shortTerm, null, 0, 10_000),
       longTerm: finiteNumber(rawLoad.longTerm, null, 0, 10_000),
-      ratio: finiteNumber(rawLoad.ratio, null, 0, 10)
+      ratio: finiteNumber(rawLoad.ratio, null, 0, 10),
+      provenance: metricProvenance(rawLoad, defaultProvenance)
     },
     trends: {
       restingHeartRate: listOfNumbers(rawTrends.restingHeartRate),

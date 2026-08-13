@@ -12,6 +12,16 @@ const CONFIDENCE_LEVELS = new Set(['low', 'moderate', 'high']);
 const RECOMMENDATION_LEVELS = new Set(['informational', 'rest', 'easy', 'moderate', 'hard']);
 const MAX_SNAPSHOT_AGE_HOURS = 36;
 const FUTURE_TOLERANCE_MINUTES = 10;
+const PROVENANCE_VALUES = Object.freeze([
+  'coros',
+  'derived',
+  'user',
+  'demo',
+  'local',
+  'mixed',
+  'unknown'
+]);
+const PROVENANCE_SET = new Set(PROVENANCE_VALUES);
 
 function valueAtPath(value, keyPath) {
   return keyPath.split('.').reduce((current, key) => current?.[key], value);
@@ -184,6 +194,22 @@ function assertCollectionLimits(snapshot) {
   return snapshot;
 }
 
+function assertProvenanceValues(snapshot) {
+  const entities = [
+    ...Object.values(snapshot.health || {}),
+    ...(Array.isArray(snapshot.todayActivities) ? snapshot.todayActivities : []),
+    snapshot.plan,
+    snapshot.load,
+    ...(Array.isArray(snapshot.trends?.trainingLoad) ? snapshot.trends.trainingLoad : [])
+  ].filter((value) => value && typeof value === 'object' && !Array.isArray(value));
+  for (const entity of entities) {
+    if (Object.hasOwn(entity, 'provenance') && !PROVENANCE_SET.has(entity.provenance)) {
+      throw new Error('snapshot provenance must use a supported privacy-safe value');
+    }
+  }
+  return snapshot;
+}
+
 function subjectiveState(snapshot) {
   const subjective = snapshot.readiness?.subjective;
   const complete = Boolean(
@@ -268,11 +294,13 @@ function summarizeSnapshotCoverage(snapshot) {
 }
 
 function assertSnapshotForDisplay(snapshot) {
-  return assertCollectionLimits(
-    assertDatesAndFreshness(
-      assertSnapshotCompleteness(
-        assertTextEncoding(
-          assertSnapshotPayload(snapshot)
+  return assertProvenanceValues(
+    assertCollectionLimits(
+      assertDatesAndFreshness(
+        assertSnapshotCompleteness(
+          assertTextEncoding(
+            assertSnapshotPayload(snapshot)
+          )
         )
       )
     )
@@ -290,12 +318,14 @@ module.exports = {
   CONFIDENCE_LEVELS,
   FUTURE_TOLERANCE_MINUTES,
   MAX_SNAPSHOT_AGE_HOURS,
+  PROVENANCE_VALUES,
   READINESS_STATUSES,
   RECOMMENDATION_LEVELS,
   assertCollectionLimits,
   assertDatesAndFreshness,
   dateKeyInTimezone,
   assertReadinessGate,
+  assertProvenanceValues,
   assertSnapshotCompleteness,
   assertSnapshotForDisplay,
   assertSnapshotForPublication,

@@ -23,6 +23,92 @@ function formatPace(seconds) {
 
 function setText(selector, value) { $(selector).textContent = value; }
 
+function svgIcon(symbol, className = 'metric-svg') {
+  const namespace = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(namespace, 'svg');
+  const use = document.createElementNS(namespace, 'use');
+  svg.setAttribute('class', className);
+  svg.setAttribute('aria-hidden', 'true');
+  use.setAttribute('href', `#${symbol}`);
+  svg.append(use);
+  return svg;
+}
+
+function applyDataTrust(selector, trust) {
+  const element = $(selector);
+  element.textContent = trust.label;
+  element.className = `data-trust ${trust.state}`;
+  element.dataset.trustState = trust.state;
+  element.title = trust.title;
+}
+
+function applyCompactTrust(cardSelector, metaSelector, prefix, trust, metricName) {
+  setText(metaSelector, [prefix, trust.compactLabel].filter(Boolean).join(' · '));
+  const card = $(cardSelector);
+  card.dataset.trustState = trust.state;
+  card.title = `${metricName}；${trust.title}`;
+  card.setAttribute('aria-label', `${metricName}；${trust.title}`);
+}
+
+function groupProvenance(items) {
+  return window.PulseDataTrust.combineProvenance(
+    (Array.isArray(items) ? items : []).map((item) => item?.provenance)
+  );
+}
+
+function renderInsightTags(tags) {
+  const container = $('#insight-tags');
+  container.replaceChildren();
+  for (const value of Array.isArray(tags) ? tags : []) {
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.textContent = String(value ?? '');
+    container.append(tag);
+  }
+}
+
+function renderActivities(activities) {
+  const container = $('#activity-list');
+  container.replaceChildren();
+  for (const activity of Array.isArray(activities) ? activities : []) {
+    const row = document.createElement('div');
+    row.className = 'activity-row';
+
+    const icon = document.createElement('div');
+    icon.className = 'activity-icon';
+    icon.append(svgIcon('icon-arrow'));
+
+    const main = document.createElement('div');
+    main.className = 'activity-main';
+    const name = document.createElement('div');
+    name.className = 'activity-name';
+    name.textContent = String(activity?.sport || '运动');
+    const detail = document.createElement('div');
+    detail.className = 'activity-sub';
+    detail.textContent = [
+      formatDuration(activity?.durationSeconds),
+      activity?.paceSecondsPerKm ? formatPace(activity.paceSecondsPerKm) : '',
+      `${activity?.heartRate ?? '—'} bpm`,
+      `${activity?.calories ?? '—'} kcal`
+    ].filter(Boolean).join(' · ');
+    main.append(name, detail);
+
+    const distance = document.createElement('div');
+    distance.className = 'activity-distance';
+    if (Number(activity?.distanceKm) > 0) {
+      distance.append(document.createTextNode(Number(activity.distanceKm).toFixed(2)));
+      const unit = document.createElement('span');
+      unit.className = 'muted tiny';
+      unit.textContent = ' km';
+      distance.append(unit);
+    } else {
+      distance.textContent = '—';
+    }
+    row.append(icon, main, distance);
+    container.append(row);
+  }
+}
+
 function calendarDateKey(value, timezone) {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return '';
@@ -61,18 +147,9 @@ function dateParts(value, timezone) {
   }
 }
 
-function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
-}
-
 function shortDateLabel(value) {
   const match = String(value || '').match(/^\d{4}-(\d{2})-(\d{2})$/);
   return match ? `${Number(match[1])}月${Number(match[2])}日` : '';
-}
-
-function datedNote(label, metricDate, currentDateKey) {
-  const dateLabel = metricDate && metricDate !== currentDateKey ? shortDateLabel(metricDate) : '';
-  return dateLabel ? `${label} · ${dateLabel}` : label;
 }
 
 function applyTheme() {
@@ -168,6 +245,12 @@ function render(snapshotData) {
   const lastUpdatedDate = new Date(meta.lastUpdated || meta.asOf || Date.now());
   const todayKey = calendarDateKey(new Date(), timezone);
   const asOfKey = calendarDateKey(asOf, timezone);
+  const trustNow = Date.now();
+  const trustFor = (entity, available = true, options = {}) => window.PulseDataTrust.buildDataTrust(
+    entity,
+    meta,
+    { now: trustNow, available, ...options }
+  );
   const isCurrentDay = Boolean(asOfKey) && asOfKey === todayKey;
   const isStaleCodex = meta.provider === 'codex-coros-mcp' && !isCurrentDay;
   const sourceBadge = $('#source-badge');
@@ -225,7 +308,7 @@ function render(snapshotData) {
   insightText.setAttribute('role', safetyPresentation.announcement.role);
   insightText.setAttribute('aria-live', safetyPresentation.announcement.politeness);
   insightText.textContent = safetyPresentation.insight.text;
-  $('#insight-tags').innerHTML = safetyPresentation.insight.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('');
+  renderInsightTags(safetyPresentation.insight.tags);
   $('.insight-card').dataset.safetyMode = safetyPresentation.mode;
 
   const totalSeconds = todayActivities.reduce((sum, activity) => sum + (activity.durationSeconds || 0), 0);
@@ -235,11 +318,14 @@ function render(snapshotData) {
   setText('#training-status', todayActivities.length
     ? (todayActivities.some((a) => a.status === 'completed') ? '已完成' : '有安排')
     : isPlannedRestDay ? '休息日' : '暂无记录');
+  const activityProvenance = groupProvenance(todayActivities);
+  applyDataTrust('#training-trust', trustFor({
+    date: asOfKey || null,
+    provenance: activityProvenance
+  }, todayActivities.length > 0));
   $('#training-empty').hidden = Boolean(todayActivities.length);
   $('#training-footer').hidden = !todayActivities.length;
-  $('#activity-list').innerHTML = todayActivities.map((activity) => `<div class="activity-row">
-    <div class="activity-icon"><svg class="metric-svg" aria-hidden="true"><use href="#icon-arrow"></use></svg></div><div class="activity-main"><div class="activity-name">${escapeHtml(activity.sport || '运动')}</div><div class="activity-sub">${formatDuration(activity.durationSeconds)}${activity.paceSecondsPerKm ? ` · ${formatPace(activity.paceSecondsPerKm)}` : ''} · ${escapeHtml(activity.heartRate ?? '—')} bpm · ${escapeHtml(activity.calories ?? '—')} kcal</div></div><div class="activity-distance">${Number(activity.distanceKm) > 0 ? `${Number(activity.distanceKm).toFixed(2)}<span class="muted tiny"> km</span>` : '—'}</div>
-  </div>`).join('');
+  renderActivities(todayActivities);
   setText('#total-distance', totalDistance > 0 ? `${totalDistance.toFixed(2)} km` : '—');
   setText('#total-duration', todayActivities.length ? formatDuration(totalSeconds) : '—');
   setText('#total-heart-rate', heartRates.length ? `${Math.round(heartRates.reduce((a, b) => a + b, 0) / heartRates.length)} bpm` : '—');
@@ -249,33 +335,52 @@ function render(snapshotData) {
   }, 0);
   setText('#compact-calories', totalCalories > 0 ? Math.round(totalCalories).toLocaleString('en-US') : '—');
 
+  const sleepAvailable = health.sleep?.durationMinutes != null || health.sleep?.score != null;
+  const sleepTrust = trustFor(health.sleep, sleepAvailable);
+  const restingHeartRateTrust = trustFor(health.restingHeartRate, health.restingHeartRate?.value != null);
+  const hrvTrust = trustFor(health.hrv, health.hrv?.value != null);
+  const recoveryTrust = trustFor(health.recovery, health.recovery?.value != null);
+  const stepsTrust = trustFor(health.steps, health.steps?.value != null);
+  applyDataTrust('#sleep-trust', sleepTrust);
+  applyDataTrust('#rhr-trust', restingHeartRateTrust);
+  applyDataTrust('#hrv-trust', hrvTrust);
+  applyDataTrust('#recovery-trust', recoveryTrust);
+  applyDataTrust('#steps-trust', stepsTrust);
+
   setText('#sleep-value', formatMinutes(health.sleep?.durationMinutes || 0));
-  setText('#sleep-score', datedNote(`评分 ${health.sleep?.score ?? '—'}`, health.sleep?.date, asOfKey));
+  setText('#sleep-score', `评分 ${health.sleep?.score ?? '—'}`);
   setText('#rhr-value', health.restingHeartRate?.value == null ? '—' : `${health.restingHeartRate.value} bpm`);
   const trend = health.restingHeartRate?.trend;
-  setText('#rhr-trend', datedNote(
-    trend == null ? '无对比' : `${trend > 0 ? '↑' : trend < 0 ? '↓' : '→'} ${Math.abs(trend)} bpm vs 前日`,
-    health.restingHeartRate?.date,
-    asOfKey
-  ));
+  setText('#rhr-trend', trend == null
+    ? '无对比'
+    : `${trend > 0 ? '↑' : trend < 0 ? '↓' : '→'} ${Math.abs(trend)} bpm vs 前日`);
   setText('#hrv-value', health.hrv?.value == null ? '—' : `${health.hrv.value} ms`);
-  setText('#hrv-status', datedNote(
-    health.hrv?.status === 'above_normal' ? '高于个人正常范围' : health.hrv?.status === 'normal' ? '个人正常范围' : '暂无数据',
-    health.hrv?.date,
-    asOfKey
-  ));
+  setText('#hrv-status', health.hrv?.status === 'above_normal'
+    ? '高于个人正常范围'
+    : health.hrv?.status === 'normal' ? '个人正常范围' : '暂无数据');
   setText('#recovery-value', health.recovery?.value == null ? '—' : `${health.recovery.value}%`);
-  setText('#recovery-level', datedNote(
-    safetyPresentation.recovery.label,
-    health.recovery?.date,
-    asOfKey
-  ));
+  setText('#recovery-level', safetyPresentation.recovery.label);
   setText('#steps-value', health.steps?.value == null ? '—' : Number(health.steps.value).toLocaleString('en-US'));
-  setText('#steps-note', datedNote('今日累计', health.steps?.date, asOfKey));
+  setText('#steps-note', '累计步数');
   setText('#compact-steps', health.steps?.value == null ? '—' : Number(health.steps.value).toLocaleString('en-US'));
   setText('#compact-rhr', health.restingHeartRate?.value == null ? '—' : String(health.restingHeartRate.value));
   setText('#compact-sleep', formatMinutes(health.sleep?.durationMinutes || 0));
+  applyCompactTrust('.compact-steps-card', '#compact-steps-meta', '', stepsTrust, '步数');
+  applyCompactTrust(
+    '.compact-calories-card',
+    '#compact-calories-meta',
+    'kcal',
+    trustFor({ date: asOfKey || null, provenance: 'derived' }, totalCalories > 0),
+    '今日消耗'
+  );
+  applyCompactTrust('.compact-rhr-card', '#compact-rhr-meta', 'bpm', restingHeartRateTrust, '静息心率');
+  applyCompactTrust('.compact-sleep-card', '#compact-sleep-meta', '', sleepTrust, '睡眠时长');
   const hasStress = health.stress?.value != null;
+  const secondaryMetric = hasStress ? health.stress : health.spo2;
+  applyDataTrust(
+    '#secondary-health-trust',
+    trustFor(secondaryMetric, hasStress || health.spo2?.value != null)
+  );
   const secondaryIcon = $('#secondary-health-icon');
   secondaryIcon.className = `metric-icon ${hasStress ? 'stress-icon' : 'spo2-icon'}`;
   $('#secondary-health-use').setAttribute('href', hasStress ? '#icon-stress' : '#icon-oxygen');
@@ -284,12 +389,18 @@ function render(snapshotData) {
     ? String(health.stress.value)
     : health.spo2?.value == null ? '—' : `${health.spo2.value}%`);
   setText('#secondary-health-note', hasStress
-    ? datedNote('COROS 今日平均 · 0–100', health.stress?.date, asOfKey)
-    : datedNote(health.spo2?.value == null ? '设备未提供' : '最近有效值', health.spo2?.date, asOfKey));
+    ? '日均 · 0–100'
+    : health.spo2?.value == null ? '设备未提供' : '最近有效值');
 
-  const planDateLabel = plan.date && plan.date !== asOfKey ? shortDateLabel(plan.date) : '';
+  const planAvailable = Boolean(
+    plan.date
+    || plan.title
+    || (plan.status && plan.status !== 'unknown')
+    || plan.description
+  );
+  applyDataTrust('#plan-trust', trustFor(plan, planAvailable, { allowFuture: true }));
   const planTitle = `${safetyPresentation.plan.titlePrefix}${plan.title || '未设置训练计划'}`;
-  setText('#plan-title', planDateLabel ? `${planDateLabel} · ${planTitle}` : planTitle);
+  setText('#plan-title', planTitle);
   setText('#plan-description', safetyPresentation.plan.description);
   const planLoad = $('#plan-load');
   planLoad.hidden = !safetyPresentation.plan.loadVisible;
@@ -306,6 +417,19 @@ function render(snapshotData) {
     load.ratio == null ? '' : `比 ${load.ratio}`
   ].filter(Boolean).join(' · ');
   setText('#load-summary', loadSummary || '负荷 —');
+  const trainingLoadPoints = Array.isArray(trends.trainingLoad) ? trends.trainingLoad : [];
+  const latestLoadPoint = [...trainingLoadPoints].reverse().find((entry) => entry?.date);
+  const loadAvailable = load.shortTerm != null
+    || load.longTerm != null
+    || load.ratio != null
+    || Boolean(latestLoadPoint);
+  applyDataTrust('#load-trust', trustFor({
+    date: latestLoadPoint?.date || asOfKey || null,
+    provenance: window.PulseDataTrust.normalizeProvenance(
+      latestLoadPoint?.provenance ?? load.provenance,
+      'derived'
+    )
+  }, loadAvailable));
   renderLoadBars(trends.trainingLoad);
   renderBars('#rhr-bars', trends.restingHeartRate);
   renderBars('#sleep-bars', trends.sleepScore);

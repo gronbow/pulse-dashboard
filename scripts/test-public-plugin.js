@@ -48,4 +48,14 @@ for (const relativePath of [
   assert.deepEqual(published, canonical, `${relativePath} is out of sync in the public plugin package`);
 }
 
+const publicSnapshotPolicy = require(path.join(pluginRoot, 'scripts', 'snapshot-policy.js'));
+assert.equal(typeof publicSnapshotPolicy.assertSnapshotForPublication, 'function');
+assert.doesNotThrow(() => publicSnapshotPolicy.assertProvenanceValues({
+  health: { sleep: { provenance: 'coros' } },
+  todayActivities: [],
+  plan: { provenance: 'user' },
+  load: { provenance: 'derived' },
+  trends: { trainingLoad: [] }
+}));
+
 console.log('Public plugin package passed: marketplace metadata and packaged source are in sync.');

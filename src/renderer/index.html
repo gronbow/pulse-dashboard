@@ -45,19 +45,19 @@
         <div class="compact-metric-grid">
           <article class="compact-metric compact-steps-card">
             <div class="compact-metric-label"><span class="compact-metric-icon steps-icon"><svg class="metric-svg" aria-hidden="true"><use href="#icon-steps"></use></svg></span><span class="compact-metric-name">步数</span></div>
-            <div class="compact-metric-data"><strong id="compact-steps">—</strong><span class="compact-unit">今日累计</span></div>
+            <div class="compact-metric-data"><strong id="compact-steps">—</strong><span id="compact-steps-meta" class="compact-unit">—</span></div>
           </article>
           <article class="compact-metric compact-calories-card">
             <div class="compact-metric-label"><span class="compact-metric-icon calories-icon"><svg class="metric-svg filled" aria-hidden="true"><use href="#icon-calories"></use></svg></span><span class="compact-metric-name">今日消耗</span></div>
-            <div class="compact-metric-data"><strong id="compact-calories">—</strong><span class="compact-unit">kcal</span></div>
+            <div class="compact-metric-data"><strong id="compact-calories">—</strong><span id="compact-calories-meta" class="compact-unit">kcal · —</span></div>
           </article>
           <article class="compact-metric compact-rhr-card">
             <div class="compact-metric-label"><span class="compact-metric-icon heart-icon"><svg class="metric-svg filled" aria-hidden="true"><use href="#icon-heart"></use></svg></span><span class="compact-metric-name">静息心率</span></div>
-            <div class="compact-metric-data"><strong id="compact-rhr">—</strong><span class="compact-unit">bpm</span></div>
+            <div class="compact-metric-data"><strong id="compact-rhr">—</strong><span id="compact-rhr-meta" class="compact-unit">bpm · —</span></div>
           </article>
           <article class="compact-metric compact-sleep-card">
             <div class="compact-metric-label"><span class="compact-metric-icon sleep-icon"><svg class="metric-svg" aria-hidden="true"><use href="#icon-moon"></use></svg></span><span class="compact-metric-name">睡眠时长</span></div>
-            <div class="compact-metric-data"><strong id="compact-sleep">—</strong><span class="compact-unit">昨夜记录</span></div>
+            <div class="compact-metric-data"><strong id="compact-sleep">—</strong><span id="compact-sleep-meta" class="compact-unit">—</span></div>
           </article>
         </div>
       </section>
@@ -99,7 +99,7 @@
       <section class="card training-card">
         <div class="card-heading">
           <div class="section-label">今日训练</div>
-          <span id="training-status" class="status-chip">—</span>
+          <div class="card-heading-meta"><span id="training-trust" class="data-trust">—</span><span id="training-status" class="status-chip">—</span></div>
         </div>
         <div id="training-empty" class="empty-state" hidden>今日暂无训练记录</div>
         <div id="activity-list"></div>
@@ -112,37 +112,37 @@
 
       <section class="metric-grid">
         <article class="metric-card card">
-          <div class="metric-icon sleep-icon"><svg class="metric-svg" aria-hidden="true"><use href="#icon-moon"></use></svg></div>
+          <div class="metric-card-head"><div class="metric-icon sleep-icon"><svg class="metric-svg" aria-hidden="true"><use href="#icon-moon"></use></svg></div><span id="sleep-trust" class="data-trust">—</span></div>
           <div class="muted tiny">睡眠</div>
           <strong id="sleep-value">—</strong>
           <span id="sleep-score" class="metric-note">评分 —</span>
         </article>
         <article class="metric-card card">
-          <div class="metric-icon heart-icon"><svg class="metric-svg filled" aria-hidden="true"><use href="#icon-heart"></use></svg></div>
+          <div class="metric-card-head"><div class="metric-icon heart-icon"><svg class="metric-svg filled" aria-hidden="true"><use href="#icon-heart"></use></svg></div><span id="rhr-trust" class="data-trust">—</span></div>
           <div class="muted tiny">静息心率</div>
           <strong id="rhr-value">—</strong>
           <span id="rhr-trend" class="metric-note">—</span>
         </article>
         <article class="metric-card card">
-          <div class="metric-icon hrv-icon"><svg class="metric-svg" aria-hidden="true"><use href="#icon-pulse"></use></svg></div>
+          <div class="metric-card-head"><div class="metric-icon hrv-icon"><svg class="metric-svg" aria-hidden="true"><use href="#icon-pulse"></use></svg></div><span id="hrv-trust" class="data-trust">—</span></div>
           <div class="muted tiny">睡眠 HRV</div>
           <strong id="hrv-value">—</strong>
           <span id="hrv-status" class="metric-note">—</span>
         </article>
         <article class="metric-card card">
-          <div class="metric-icon recovery-icon"><svg class="metric-svg" aria-hidden="true"><use href="#icon-arrow"></use></svg></div>
+          <div class="metric-card-head"><div class="metric-icon recovery-icon"><svg class="metric-svg" aria-hidden="true"><use href="#icon-arrow"></use></svg></div><span id="recovery-trust" class="data-trust">—</span></div>
           <div class="muted tiny">恢复状态</div>
           <strong id="recovery-value">—</strong>
           <span id="recovery-level" class="metric-note">—</span>
         </article>
         <article class="metric-card card steps-card">
-          <div class="metric-icon steps-icon"><svg class="metric-svg" aria-hidden="true"><use href="#icon-steps"></use></svg></div>
+          <div class="metric-card-head"><div class="metric-icon steps-icon"><svg class="metric-svg" aria-hidden="true"><use href="#icon-steps"></use></svg></div><span id="steps-trust" class="data-trust">—</span></div>
           <div class="muted tiny">步数</div>
           <strong id="steps-value">—</strong>
           <span id="steps-note" class="metric-note">今日累计</span>
         </article>
         <article class="metric-card card secondary-health-card">
-          <div id="secondary-health-icon" class="metric-icon stress-icon"><svg class="metric-svg" aria-hidden="true"><use id="secondary-health-use" href="#icon-stress"></use></svg></div>
+          <div class="metric-card-head"><div id="secondary-health-icon" class="metric-icon stress-icon"><svg class="metric-svg" aria-hidden="true"><use id="secondary-health-use" href="#icon-stress"></use></svg></div><span id="secondary-health-trust" class="data-trust">—</span></div>
           <div id="secondary-health-label" class="muted tiny">日均压力</div>
           <strong id="secondary-health-value">—</strong>
           <span id="secondary-health-note" class="metric-note">—</span>
@@ -153,6 +153,7 @@
         <div class="card-heading">
           <div class="section-label">训练计划</div>
           <div class="plan-heading-meta">
+            <span id="plan-trust" class="data-trust">—</span>
             <span id="plan-state" class="plan-state" hidden></span>
             <span id="plan-load" class="muted tiny">—</span>
           </div>
@@ -169,7 +170,7 @@
       <section class="card trend-card">
         <div class="card-heading">
           <div class="section-label">近 7 日状态</div>
-          <span id="load-summary" class="muted tiny">负荷 —</span>
+          <div class="trend-heading-meta"><span id="load-trust" class="data-trust">—</span><span id="load-summary" class="muted tiny">负荷 —</span></div>
         </div>
         <div class="trend-block load-trend-block"><span class="muted tiny">训练负荷</span><div id="load-bars" class="load-bars"></div></div>
         <div class="trend-block"><span class="muted tiny">静息心率</span><div id="rhr-bars" class="bars"></div></div>
@@ -220,6 +221,7 @@
         <div class="dialog-actions"><button id="cancel-settings-button" type="button" class="secondary-button">取消</button><button id="save-settings" type="submit" class="primary-button">保存设置</button></div>
       </form>
     </dialog>
+    <script src="../data-trust.js"></script>
     <script src="../safety-presentation.js"></script>
     <script src="app.js"></script>
   </body>

@@ -2,8 +2,10 @@ const assert = require('node:assert/strict');
 const {
   assertSnapshotForDisplay,
   assertSnapshotForPublication,
+  PROVENANCE_VALUES,
   summarizeSnapshotCoverage
 } = require('./snapshot-policy');
+const { PROVENANCE_VALUES: RENDERER_PROVENANCE_VALUES } = require('../src/data-trust');
 
 const now = Date.parse('2026-08-08T09:00:00Z');
 const base = {
@@ -32,6 +34,7 @@ const base = {
 
 const copy = (value) => JSON.parse(JSON.stringify(value));
 
+assert.deepEqual(PROVENANCE_VALUES, RENDERER_PROVENANCE_VALUES);
 assert.doesNotThrow(() => assertSnapshotForPublication(copy(base), { now }));
 assert.equal(summarizeSnapshotCoverage(base).healthSignals, 4);
 assert.equal(summarizeSnapshotCoverage(base).subjectiveComplete, false);
@@ -113,5 +116,20 @@ assert.throws(() => assertSnapshotForPublication(tooManyActivities, { now }), /3
 const badDate = copy(base);
 badDate.health.sleep.date = '2026-02-30';
 assert.throws(() => assertSnapshotForPublication(badDate, { now }), /invalid YYYY-MM-DD/);
+
+const validProvenance = copy(base);
+validProvenance.health.sleep.provenance = 'coros';
+validProvenance.todayActivities = [{ sport: 'Run', durationSeconds: 600, provenance: 'coros' }];
+validProvenance.plan.provenance = 'coros';
+validProvenance.load = { shortTerm: 60, provenance: 'derived' };
+assert.doesNotThrow(() => assertSnapshotForPublication(validProvenance, { now }));
+
+const invalidProvenance = copy(base);
+invalidProvenance.health.sleep.provenance = '<remote-endpoint>';
+assert.throws(() => assertSnapshotForDisplay(invalidProvenance), /provenance/);
+
+const inheritedProvenance = copy(base);
+inheritedProvenance.health.sleep = Object.assign(Object.create({ provenance: '<remote-endpoint>' }), inheritedProvenance.health.sleep);
+assert.doesNotThrow(() => assertSnapshotForDisplay(inheritedProvenance));
 
 console.log('Snapshot policy passed: freshness, limits, readiness and stop/refer override are enforced.');

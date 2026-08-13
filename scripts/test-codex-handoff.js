@@ -73,6 +73,7 @@ server.listen(0, '127.0.0.1', async () => {
 
     const unauthenticated = await fetch(`${base}/api/snapshot`);
     assert.equal(unauthenticated.status, 401);
+    assert.equal(unauthenticated.headers.get('x-content-type-options'), 'nosniff');
     const wrongToken = await fetch(`${base}/api/snapshot`, {
       headers: bearerHeaders('B'.repeat(43))
     });
@@ -98,7 +99,9 @@ server.listen(0, '127.0.0.1', async () => {
     assert.equal(health.ready, true);
     assert.equal(verifyHandoffIdentity(health, token, healthChallenge), true);
 
-    const snapshot = await (await fetch(`${base}/api/snapshot`, authorized())).json();
+    const snapshotResponse = await fetch(`${base}/api/snapshot`, authorized());
+    assert.equal(snapshotResponse.headers.get('x-content-type-options'), 'nosniff');
+    const snapshot = await snapshotResponse.json();
     assert.equal(snapshot.meta.provider, 'codex-coros-mcp');
     assert.equal(snapshot.health.sleep.score, 92);
     assert.equal(snapshot.health.sleep.date, date);
