@@ -7,6 +7,8 @@ const packagePath = path.join(root, 'package.json');
 const iconPath = path.join(root, 'build', 'icon.ico');
 const trayPngPath = path.join(root, 'build', 'tray-icon.png');
 const mainSource = fs.readFileSync(path.join(root, 'src', 'main.js'), 'utf8');
+const appProtocolSource = fs.readFileSync(path.join(root, 'src', 'app-protocol.js'), 'utf8');
+const { PULSE_RENDERER_CSP } = require(path.join(root, 'src', 'app-protocol.js'));
 const preloadSource = fs.readFileSync(path.join(root, 'src', 'preload.js'), 'utf8');
 const rendererHtml = fs.readFileSync(path.join(root, 'src', 'renderer', 'index.html'), 'utf8');
 
@@ -73,11 +75,30 @@ try {
 if (!mainSource.includes('setPermissionRequestHandler') || !mainSource.includes('setPermissionCheckHandler')) {
   fail('Electron session permissions must default to denied');
 }
+if (mainSource.includes('.loadFile(') || !mainSource.includes('mainWindow.loadURL(PULSE_APP_ENTRY_URL)')) {
+  fail('renderer must load through the constrained application protocol instead of file://');
+}
+if (!mainSource.includes('registerPulseAppScheme(protocol)') || !mainSource.includes('installPulseAppProtocol(protocol)')) {
+  fail('application protocol must be registered before ready and installed before window creation');
+}
+if (!appProtocolSource.includes("standard: true") || !appProtocolSource.includes("secure: true")) {
+  fail('application protocol must use standard secure URL semantics');
+}
+if (!appProtocolSource.includes("'Content-Security-Policy': PULSE_RENDERER_CSP") || !appProtocolSource.includes("'X-Content-Type-Options': 'nosniff'")) {
+  fail('application protocol responses must enforce CSP and MIME protection headers');
+}
+if (!mainSource.includes("if (!app.isPackaged) return '';") || !mainSource.includes("path.join(app.getPath('userData'), 'protocol-self-check.json')")) {
+  fail('packaged protocol self-check must stay disabled in development and use its fixed app-data output');
+}
 if (/ipcRenderer\.on\([^\n]+,\s*handler\)/.test(preloadSource)) {
   fail('preload event subscriptions must not expose IpcRendererEvent to the renderer');
 }
 if (rendererHtml.includes("style-src 'self' 'unsafe-inline'")) {
   fail('renderer CSP must not allow inline styles');
+}
+const rendererCsp = rendererHtml.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/i)?.[1];
+if (rendererCsp !== PULSE_RENDERER_CSP) {
+  fail('renderer meta CSP and application protocol response CSP must remain identical');
 }
 
 for (const [label, filePath, header] of [

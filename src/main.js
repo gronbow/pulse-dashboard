@@ -1,10 +1,10 @@
-const { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, safeStorage, screen, session, Tray } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, net, protocol, safeStorage, screen, session, Tray } = require('electron');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const http = require('node:http');
 const https = require('node:https');
-const { pathToFileURL, URL } = require('node:url');
+const { URL } = require('node:url');
 const { normalizeInsight, normalizeSnapshot, resolveFallbackSnapshot } = require('./snapshot');
 const { createDataSourceAdapter } = require('./adapters/data-source-adapter');
 const { CODEX_HANDOFF_PORT, CODEX_HANDOFF_URL, createCodexHandoffServer } = require('../bridge/codex-handoff-server');
@@ -22,6 +22,14 @@ const {
 } = require('./secure-snapshot-store');
 const { assertSnapshotForDisplay } = require('../scripts/snapshot-policy');
 const {
+  PULSE_APP_ASSETS,
+  PULSE_APP_ENTRY_URL,
+  PULSE_APP_ORIGIN,
+  PULSE_RENDERER_CSP,
+  installPulseAppProtocol,
+  registerPulseAppScheme
+} = require('./app-protocol');
+const {
   DEFAULT_CONFIG,
   normalizeConfig,
   readConfigFile,
@@ -38,6 +46,7 @@ let codexHandoffUrl = CODEX_HANDOFF_URL;
 let invalidLegacySnapshotPaths = [];
 let applyingWindowLayout = false;
 let persistWindowBoundsTimer;
+registerPulseAppScheme(protocol);
 if (process.platform === 'win32') app.setAppUserModelId(WINDOWS_APP_ID);
 app.enableSandbox();
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
@@ -412,6 +421,49 @@ function smokeScreenshotPath() {
   return argument ? path.resolve(argument.slice(prefix.length)) : '';
 }
 
+function packagedAppProtocolCheckPath() {
+  if (!app.isPackaged) return '';
+  if (!process.argv.includes('--pulse-app-protocol-check')) return '';
+  return path.join(app.getPath('userData'), 'protocol-self-check.json');
+}
+
+async function runPackagedAppProtocolCheck(outputPath) {
+  const assets = [];
+  for (const [url, definition] of Object.entries(PULSE_APP_ASSETS)) {
+    const response = await net.fetch(url);
+    const body = await response.text();
+    assets.push({
+      url,
+      status: response.status,
+      contentType: response.headers.get('content-type'),
+      csp: response.headers.get('content-security-policy'),
+      nosniff: response.headers.get('x-content-type-options'),
+      body
+    });
+    if (response.status !== 200 || response.headers.get('content-type') !== definition.contentType) break;
+  }
+  const entry = assets.find(({ url }) => url === PULSE_APP_ENTRY_URL);
+  const blocked = await net.fetch(`${PULSE_APP_ORIGIN}/main.js`);
+  const result = {
+    ok: assets.length === Object.keys(PULSE_APP_ASSETS).length
+      && assets.every(({ status, csp, nosniff, body }) => status === 200
+        && csp === PULSE_RENDERER_CSP
+        && nosniff === 'nosniff'
+        && body.length > 0)
+      && entry?.body.includes('<title>Pulse Dashboard</title>')
+      && blocked.status === 404,
+    packaged: app.isPackaged,
+    assetCount: assets.length,
+    entryStatus: entry?.status || 0,
+    blockedStatus: blocked.status,
+    cspEnforced: entry?.csp === PULSE_RENDERER_CSP,
+    mimeProtected: entry?.nosniff === 'nosniff'
+  };
+  if (!result.ok) throw new Error(`packaged protocol self-check failed: ${JSON.stringify(result)}`);
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, JSON.stringify(result, null, 2), 'utf8');
+}
+
 function trayIconCheckPath() {
   const prefix = '--pulse-tray-icon-check=';
   const argument = process.argv.find((value) => value.startsWith(prefix));
@@ -702,7 +754,7 @@ function createWindow() {
   });
   configureWindowIdentity(mainWindow, windowIcon);
   applyWindowConfig(config);
-  mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  mainWindow.loadURL(PULSE_APP_ENTRY_URL);
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   mainWindow.webContents.on('will-navigate', (event) => event.preventDefault());
   mainWindow.webContents.on('will-attach-webview', (event) => event.preventDefault());
@@ -866,7 +918,20 @@ if (!hasSingleInstanceLock) {
   });
   app.whenReady().then(async () => {
     Menu.setApplicationMenu(null);
+    installPulseAppProtocol(protocol);
     configureSessionSecurity();
+    try {
+      const protocolCheckOutput = packagedAppProtocolCheckPath();
+      if (protocolCheckOutput) {
+        await runPackagedAppProtocolCheck(protocolCheckOutput);
+        app.exit(0);
+        return;
+      }
+    } catch (error) {
+      console.error(`Pulse packaged protocol check failed: ${error.message}`);
+      app.exit(1);
+      return;
+    }
     const trayCheckOutput = trayIconCheckPath();
     if (trayCheckOutput) {
       try {
@@ -909,8 +974,7 @@ app.on('before-quit', () => {
 
 function assertTrustedRenderer(event) {
   const actual = event.senderFrame?.url || event.sender?.getURL?.() || '';
-  const expected = pathToFileURL(path.join(__dirname, 'renderer', 'index.html')).href;
-  if (actual !== expected) throw new Error('Untrusted renderer IPC request blocked');
+  if (actual !== PULSE_APP_ENTRY_URL) throw new Error('Untrusted renderer IPC request blocked');
 }
 
 async function clearLocalHealthData() {

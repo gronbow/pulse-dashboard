@@ -1,7 +1,16 @@
+const assert = require('node:assert/strict');
 const path = require('node:path');
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, net, protocol } = require('electron');
+const {
+  PULSE_APP_ENTRY_URL,
+  PULSE_APP_ORIGIN,
+  PULSE_RENDERER_CSP,
+  installPulseAppProtocol,
+  registerPulseAppScheme
+} = require('../src/app-protocol');
 
 app.commandLine.appendSwitch('disable-gpu');
+registerPulseAppScheme(protocol);
 
 async function waitForRenderer(window, timeoutMs = 5000) {
   const startedAt = Date.now();
@@ -207,6 +216,14 @@ async function run() {
   let window;
   let exitCode = 0;
   try {
+    installPulseAppProtocol(protocol);
+    const entryResource = await net.fetch(PULSE_APP_ENTRY_URL);
+    assert.equal(entryResource.status, 200, 'custom protocol must serve the dashboard entry point');
+    assert.equal(entryResource.headers.get('content-type'), 'text/html; charset=utf-8');
+    assert.equal(entryResource.headers.get('content-security-policy'), PULSE_RENDERER_CSP);
+    assert.equal(entryResource.headers.get('x-content-type-options'), 'nosniff');
+    const blockedResource = await net.fetch(`${PULSE_APP_ORIGIN}/main.js`);
+    assert.equal(blockedResource.status, 404, 'custom protocol must not expose non-renderer source files');
     window = new BrowserWindow({
       show: false,
       webPreferences: {
@@ -216,7 +233,7 @@ async function run() {
         nodeIntegration: false
       }
     });
-    await window.loadFile(path.join(__dirname, '..', 'src', 'renderer', 'index.html'));
+    await window.loadURL(PULSE_APP_ENTRY_URL);
     await waitForRenderer(window);
     await window.webContents.executeJavaScript(behaviorTest, true);
     console.log('Renderer safety behavior passed: policy transitions and insight races preserve the latest safety state.');
