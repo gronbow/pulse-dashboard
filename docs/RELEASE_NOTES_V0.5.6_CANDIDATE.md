@@ -1,6 +1,6 @@
 # Pulse v0.5.6 Candidate Notes
 
-状态：未发布候选。PR #6–#10 已进入 `main`；下述 PR A 训练安全呈现和 PR B 数据可信度呈现仍只存在于本地/功能分支，不代表已经合并、生成安装包或发布 GitHub Release。
+状态：未发布候选。PR #6–#10 已进入 `main`；PR A #12、PR B #13 和 PR C #20 已上传为检查通过的堆叠 Draft，均未合并或发布。PR D 运行时与发布维护只存在于本地候选分支，尚未提交或上传。
 
 ## 主要变化
 
@@ -20,12 +20,25 @@
 - 洞察生成的成功或失败回调会重新应用最新安全状态，操作错误显示在独立状态栏，不能覆盖阻断提示。
 - 新增纯策略、原型继承防护、状态往返、异步竞态，以及真实 Electron 文字/ARIA/规则 ID 回归测试。测试只使用合成数据。
 
-## PR B：逐项数据可信度（尚未提交或上传）
+## PR B：逐项数据可信度（Draft #13，尚未合并）
 
 - 健康、训练、计划和负荷逐项显示真实日期与受控来源；紧凑模式只把短日期放入单位行，维持 4:3、16:9 和 21:9 的低信息密度。
 - 来源只允许固定枚举，并明确区分指标来源与 Handoff/缓存传输路径；缺失来源或日期时保守显示未知。
 - 动态洞察标签和活动列表改为 DOM 文本节点构建；Handoff JSON 响应增加 `X-Content-Type-Options: nosniff`。
 - 新增日期/来源纯函数、快照归一化、发布质量门、真实 Electron 和三种紧凑比例回归测试。测试和截图只使用合成数据。
+
+## PR C：仓库与页面加载加固（Draft #20，尚未合并）
+
+- 将 Renderer 从 `file://` 迁移到 `pulse-app://dashboard`，只允许 HTML、CSS 和三个脚本共五个固定资源。
+- 页面协议按资源返回 CSP、正确 MIME 和 `nosniff`；拒绝未知路径、目录、非 GET 方法和路径逃逸。
+- IPC 只接受精确入口地址，打包测试验证 ASAR 内页面资源和协议安全头。
+
+## PR D：运行时与发布维护（本地候选，待审查）
+
+- 更新至 Electron 44.2.0、`@electron/fuses` 2.1.3 和 Node.js 22.12+，并适配新版 Fuse 检查接口。
+- 将 Anchore SBOM Action 更新到 0.24.2；锁文件同时纳入 `fast-uri` 3.1.7 和 `@xmldom/xmldom` 0.8.15。
+- 新增 Windows 安装包生命周期门：隔离安装、安装版协议/ASAR/CSP/MIME 自检、静默卸载。
+- 完整测试、打包、自定义协议、图标、Fuse、三种小组件和浅色长文本回归均已在本机通过；安装包仍未签名。
 
 ## 仍然存在的限制
 
@@ -43,6 +56,7 @@ npm ci
 npm run test:ci
 npm run dist:win
 npm run test:packaged
+npm run test:installer
 ```
 
 手动 GitHub Release Candidate 还应产生 installer、blockmap、SPDX SBOM、`SHA256SUMS.txt`、构建来源证明和 SBOM 证明。只有这些产物完成独立核验后，才能另行申请发布授权。
