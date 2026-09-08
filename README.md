@@ -138,6 +138,7 @@ codex plugin add pulse-dashboard@pulse-dashboard
 - Handoff 和自定义 HTTP Bridge 都只允许 `localhost`、`127.0.0.1` 或 IPv6 loopback，不向局域网开放。
 - Handoff 使用随机挑战确认固定端口上的服务身份，并以当前用户随机令牌保护快照和洞察接口。
 - Electron 会话默认拒绝权限请求；Preload 不向页面暴露 IPC 事件对象，打包版关闭 Node/调试环境入口并强制 ASAR 完整性。
+- 桌面页面通过受限的 `pulse-app://dashboard` 协议加载，只允许五个固定内置资源；未知路径、查询变体和非 GET 请求不会映射到本机文件。
 - Pulse 不保存 COROS 密码、Token、Cookie、原始 MCP 响应、活动内部 ID 或坐标。
 - 公开仓库只提交合成快照和空状态截图；`.fit`、GPX/TCX/KML、运行缓存、私有配置和训练计划目录均被排除并接受自动审计。
 - 快照发布前至少需要两个有效健康信号；有距离的活动必须有正时长。AI 洞察若生成失败会在独立状态栏提示，不会覆盖安全提示，也不会阻断已通过校验的客观数据更新。
