@@ -1,7 +1,7 @@
 # Pulse 仓库全面审查与后续开发计划
 
 审查日期：2026-09-08
-审查基线：PR A #12 → PR B #13 → PR C #20；PR D 为本地候选，尚未提交、上传或合并。
+审查基线：PR A #12 → PR B #13 → PR C #20；PR D 已通过本地验证，经用户批准上传为 Draft #21，尚未合并或发布。
 
 ## 结论
 
@@ -64,7 +64,7 @@
 ## 推荐开发与合并顺序
 
 1. 依次审查并合并 PR #12、#13、#20。
-2. 将 PR D 以 #20 为基线提交为 Draft，经检查通过后审查并合并；随后关闭已被它取代的 Dependabot PR。
+2. PR D 已以 #20 为基线上传为 Draft #21，经检查通过后审查并合并；随后关闭已被它取代的 Dependabot PR。
 3. 从合并后的主线创建 PR E，只处理长标签、4:3 信息密度和卡片显隐。
 4. 在干净检出上运行 Release Candidate 工作流，下载并核验安装包、blockmap、SPDX、SHA-256 和两类证明。
 5. 完成第二台 Windows 设备验收；发布和版本标签继续使用独立授权。
@@ -81,4 +81,4 @@
 | `npm run release:checksums`（仅本机） | 按预期失败关闭：本机未运行 GitHub 的 Syft 步骤，因此没有 SPDX 文件；候选工作流会先生成 SBOM，再生成校验和。 |
 | Authenticode | 未通过发布门：当前安装包仍为 `NotSigned`，符合 Beta 已知限制，但不能作为正式签名版本发布。 |
 
-本文件记录的是本地候选证据，不代表 PR D 已提交、上传、合并或发布。
+本文件验证表记录本地候选证据。PR D 已上传为 [Draft #21](https://github.com/gronbow/pulse-dashboard/pull/21)；远程检查以该 PR 为准，尚未合并或发布。

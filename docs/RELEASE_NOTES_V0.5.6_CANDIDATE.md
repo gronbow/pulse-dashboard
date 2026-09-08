@@ -1,6 +1,6 @@
 # Pulse v0.5.6 Candidate Notes
 
-状态：未发布候选。PR #6–#10 已进入 `main`；PR A #12、PR B #13 和 PR C #20 已上传为检查通过的堆叠 Draft，均未合并或发布。PR D 运行时与发布维护只存在于本地候选分支，尚未提交或上传。
+状态：未发布候选。PR #6–#10 已进入 `main`；PR A #12、PR B #13 和 PR C #20 已上传为检查通过的堆叠 Draft，均未合并或发布。PR D 运行时与发布维护已通过本地验证并上传为 Draft #21，基线为 #20，尚未合并或发布。
 
 ## 主要变化
 
@@ -33,7 +33,7 @@
 - 页面协议按资源返回 CSP、正确 MIME 和 `nosniff`；拒绝未知路径、目录、非 GET 方法和路径逃逸。
 - IPC 只接受精确入口地址，打包测试验证 ASAR 内页面资源和协议安全头。
 
-## PR D：运行时与发布维护（本地候选，待审查）
+## PR D：运行时与发布维护（Draft #21，尚未合并）
 
 - 更新至 Electron 44.2.0、`@electron/fuses` 2.1.3 和 Node.js 22.12+，并适配新版 Fuse 检查接口。
 - 将 Anchore SBOM Action 更新到 0.24.2；锁文件同时纳入 `fast-uri` 3.1.7 和 `@xmldom/xmldom` 0.8.15。
