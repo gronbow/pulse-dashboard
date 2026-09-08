@@ -11,7 +11,7 @@
     "handoffProtocolVersion": 2
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.12.0"
   },
   "build": {
     "appId": "app.pulse.dashboard",
@@ -96,6 +96,7 @@
     "test:tray": "node scripts/test-tray-icon.js",
     "test:window-icon": "node scripts/test-window-icon.js",
     "test:packaged": "npm run test:packaged-protocol && node scripts/test-tray-icon.js --packaged && node scripts/test-window-icon.js --packaged && node scripts/test-electron-fuses.js",
+    "test:installer": "node scripts/test-windows-installer.js",
     "test:packaged-protocol": "node scripts/test-packaged-app-protocol.js",
     "test:history-audit-cli": "node scripts/test-audit-git-history.js",
     "test:release-contract": "node scripts/test-release-contract.js",
@@ -120,8 +121,8 @@
     "dist:win": "electron-builder --win nsis --x64"
   },
   "devDependencies": {
-    "@electron/fuses": "^1.8.0",
-    "electron": "^43.3.0",
+    "@electron/fuses": "^2.1.3",
+    "electron": "^44.2.0",
     "electron-builder": "^26.15.3"
   }
 }

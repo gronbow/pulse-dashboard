@@ -20,9 +20,10 @@ assert.match(release, /attestations:\s+write/);
 assert.match(release, /anchore\/sbom-action@/);
 assert.ok((release.match(/actions\/attest@/g) || []).length >= 2);
 assert.match(release, /npm run release:checksums/);
+assert.match(release, /npm run test:installer/);
 assert.match(release, /SHA256SUMS\.txt/);
 assert.match(release, /\.spdx\.json/);
 assert.match(dependabot, /package-ecosystem:\s+npm/);
 assert.match(dependabot, /package-ecosystem:\s+github-actions/);
 
-console.log('Workflow policy passed: actions are commit-pinned and dependency, SBOM, checksum and attestation gates are present.');
+console.log('Workflow policy passed: actions are pinned and installer, dependency, SBOM, checksum and attestation gates are present.');

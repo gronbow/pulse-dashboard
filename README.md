@@ -150,7 +150,7 @@ codex plugin add pulse-dashboard@pulse-dashboard
 
 ## 从源码运行与验证
 
-开发环境需要 Node.js 20+：
+开发环境需要 Node.js 22.12+：
 
 ```powershell
 npm install
@@ -175,11 +175,12 @@ npm run dist:win
 - `npm run audit:history` 扫描当前待发布分支可达历史，避免旧提交泄露个人路径、活动 ID 或凭据形态内容。
 - `npm run audit:dependencies` 直接检查锁文件中的完整依赖集合；`audit:production` 再以省略开发依赖的口径复核，两项都不依赖本机 `node_modules` 的偶然状态。
 - `npm run test:ci` 覆盖数据链、隐私、Git 历史、依赖审计，以及总览、三种小组件、浅色长文本、次要健康卡片和无数据状态的真实 Electron 渲染；小组件分别检查 100%、125% 和 150% 缩放。
-- `npm run test:workflows` 断言外部 Actions 使用完整提交固定，并检查依赖审查、SBOM、校验和与构建证明门。
+- `npm run test:workflows` 断言外部 Actions 使用完整提交固定，并检查依赖审查、安装包生命周期、SBOM、校验和与构建证明门。
+- `npm run test:installer` 在 Windows 临时目录中验证静默安装、安装版协议/ASAR/CSP/MIME 自检和静默卸载；运行前需先执行 `npm run dist:win`。
 - `npm run test:release` 在 `test:ci` 基础上验证已打包 EXE；运行前需先执行 `npm run pack:win` 或 `npm run dist:win`。
 - 构建采用文件白名单，桌面安装包不会包含本地训练文件、缓存或插件开发目录。
 
-发布验收、已知限制和安装包校验记录见 [v0.5.5 发布候选审计](docs/V0.5.5_RELEASE_AUDIT.md)，当前未发布变化见 [v0.5.6 Candidate Notes](docs/RELEASE_NOTES_V0.5.6_CANDIDATE.md)，供应链核验见 [Supply Chain](docs/SUPPLY_CHAIN.md)，后续方向见 [Roadmap](docs/ROADMAP.md)。
+发布验收、已知限制和安装包校验记录见 [v0.5.5 发布候选审计](docs/V0.5.5_RELEASE_AUDIT.md)，当前未发布变化见 [v0.5.6 Candidate Notes](docs/RELEASE_NOTES_V0.5.6_CANDIDATE.md)，最新全面审查见 [2026-09-08 仓库审查](docs/REPOSITORY_AUDIT_2026-09-08.md)，供应链核验见 [Supply Chain](docs/SUPPLY_CHAIN.md)，后续方向见 [Roadmap](docs/ROADMAP.md)。
 
 ## 项目状态与反馈
 

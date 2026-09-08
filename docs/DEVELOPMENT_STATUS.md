@@ -2,7 +2,7 @@
 
 更新时间：2026-09-08
 
-当前公开版本：桌面端与 Codex 插件 v0.5.5 Beta；当前源码：v0.5.6 候选。PR A“训练安全呈现”、堆叠在其上的 PR B“数据可信度呈现”及 PR C“仓库与页面加载加固”均已创建为 Draft、检查通过且尚未合并或发布。
+当前公开版本：桌面端与 Codex 插件 v0.5.5 Beta；当前源码：v0.5.6 候选。PR A“训练安全呈现”、堆叠在其上的 PR B“数据可信度呈现”及 PR C“仓库与页面加载加固”均已创建为 Draft、检查通过且尚未合并或发布。PR D“运行时与发布维护”已完成本地验证，并经用户批准上传为 [Draft #21](https://github.com/gronbow/pulse-dashboard/pull/21)，基线为 #20，尚未合并或发布。
 
 ## 当前目标
 
@@ -19,9 +19,9 @@
 | 数据质量 | 睡眠、心率、HRV、日均压力、步数、恢复等至少两项健康信号，以及有效洞察、活动正时长、UTF-8、时间戳/日期和集合上限，成为覆盖旧快照前的硬门槛。最终 `readiness` 统一控制洞察、恢复提示和训练计划：`data_insufficient` 只展示客观数据，`stop_refer` 停止训练建议；设备恢复值不能覆盖安全状态。 |
 | 七日负荷 | 近 7 日逐日短期负荷已加入标准快照与桌面图表，同时显示当前短期、长期负荷及比值。 |
 | 指标时效与来源 | 睡眠、静息心率、HRV 等支持独立数据日期；PR B 进一步让健康、训练、计划和负荷逐卡显示日期与受控来源，紧凑模式仅显示短日期，避免旧值或汇总值被误认为当前 COROS 原始值。 |
-| 验证 | 演示 Bridge、快照、适配器、Codex Handoff、发布脚本、隐私审计、真实 Electron 截图、压力/血氧渲染断言，以及解包版托盘与窗口原生图像检查均纳入本地验证；新增安全呈现纯函数测试、ready/阻断往返与异步洞察竞态测试、`data_insufficient`/`stop_refer` 实窗文字和 ARIA 测试，以及 WCAG AA、长文本和 100%/125%/150% 缩放布局门。 |
-| 分发准备 | Windows 打包配置、应用图标、严格包内容白名单、CI、Issue/PR 模板、合成预览图和发布检查清单已加入；v0.5.5 已加入三种简洁小组件截图，完成隔离目录静默安装/卸载演练，并发布 GitHub Pre-release。 |
-| 供应链 | v0.5.6 候选固定所有 GitHub Actions 提交，加入 npm/Actions Dependabot、PR 依赖审查、SPDX SBOM、SHA-256 和 GitHub 构建/SBOM 证明；GitHub 已开启漏洞告警、安全更新、私密漏洞报告及 `main` 分支保护。 |
+| 验证 | 演示 Bridge、快照、适配器、Codex Handoff、发布脚本、隐私审计、真实 Electron 截图、压力/血氧渲染断言，以及解包版托盘与窗口原生图像检查均纳入本地验证；新增安全呈现纯函数测试、ready/阻断往返与异步洞察竞态测试、`data_insufficient`/`stop_refer` 实窗文字和 ARIA 测试，以及 WCAG AA、长文本和 100%/125%/150% 缩放布局门。PR D 再加入安装包隔离安装、安装版安全自检和静默卸载门。 |
+| 分发准备 | Windows 打包配置、应用图标、严格包内容白名单、CI、Issue/PR 模板、合成预览图和发布检查清单已加入；v0.5.5 已加入三种简洁小组件截图，完成隔离目录静默安装/卸载演练，并发布 GitHub Pre-release。PR D 将该演练固化为 Release Candidate 自动检查。 |
+| 供应链 | v0.5.6 候选固定所有 GitHub Actions 提交，加入 npm/Actions Dependabot、PR 依赖审查、SPDX SBOM、SHA-256 和 GitHub 构建/SBOM 证明；GitHub 已开启漏洞告警、安全更新、私密漏洞报告及 `main` 分支保护。PR D 本地候选更新至 Electron 44.2.0、Fuses 2.1.3、Node.js 22.12+ 和 Anchore SBOM Action 0.24.2。 |
 | 页面加载边界 | PR C 已将 Renderer 从 `file://` 迁移到 `pulse-app://dashboard`，仅放行 HTML、CSS 与三个脚本共五个固定资源；IPC 只接受精确入口地址，未知路径和非 GET 请求纳入自动测试。 |
 | 产品边界 | Pulse 不开发 COROS OAuth、Token 管理或供应商 API 直连；这些职责属于 LLM Host。 |
 
@@ -37,9 +37,9 @@
 
 ## 下一步
 
-1. 保持堆叠顺序：先审查并合并 PR A，再更新/审查 PR B，最后更新并审查 PR C；发布仍需单独授权。
-2. PR C 合并前复核自定义页面协议、CSP、IPC 来源限制、打包后 ASAR 资源和依赖审查结果。
-3. Electron 与 Fuses 依赖更新保持为独立 PR，避免与功能和安全边界改动混合；升级后执行完整回归和解包验证。
+1. 保持堆叠顺序：审查并合并 PR #12 → #13 → #20；发布仍需单独授权。
+2. 审查以 #20 为基线的 PR D #21；其 Electron/Fuses/SBOM 和锁文件升级可统一取代 Dependabot #11、#16–#19。
+3. PR D 检查通过并合并后，再以独立 PR E 处理长标签、4:3 信息密度和卡片显隐，不与运行时升级混合。
 4. 用连续多日真实 COROS 数据复测训练、健康、计划和七日负荷字段。
 5. 在另一台 Windows 设备完成安装、升级、卸载和系统 DPI 目视复测；未完成代码签名前继续标记为 unsigned beta。
 
@@ -57,6 +57,7 @@
 - [v0.5.5 简洁小组件发布说明](RELEASE_NOTES_V0.5.5_BETA.md)
 - [v0.5.5 发布候选审计](V0.5.5_RELEASE_AUDIT.md)
 - [v0.5.6 候选变化](RELEASE_NOTES_V0.5.6_CANDIDATE.md)
+- [2026-09-08 仓库全面审查与开发计划](REPOSITORY_AUDIT_2026-09-08.md)
 - [PR A 训练安全呈现设计](superpowers/specs/2026-08-10-pulse-training-safety-presentation-design.md)
 - [供应链与发布产物](SUPPLY_CHAIN.md)
 - [原始需求追踪矩阵](REQUIREMENTS_TRACEABILITY.md)
